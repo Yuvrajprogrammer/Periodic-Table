@@ -1,0 +1,3371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Interactive Periodic Table — All 118 Elements & Live Bohr Models</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Space+Grotesk:wght@600;700;800&display=swap');
+
+  :root {
+    --bg: #070a13;
+    --panel: #0f1626;
+    --panel-alt: #162038;
+    --border: #253352;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    --cat-alkali: #ff4757;
+    --cat-alkaline: #ff7f50;
+    --cat-transition: #ffbe0b;
+    --cat-post: #2ed573;
+    --cat-metalloid: #00d2d3;
+    --cat-nonmetal: #3b82f6;
+    --cat-noble: #a855f7;
+    --cat-lanthanide: #ff6b81;
+    --cat-actinide: #f43f5e;
+    --cat-unknown: #64748b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #131c36 0%, var(--bg) 65%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Bouncy Header & Controls */
+  header {
+    background: rgba(15, 22, 38, 0.85);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-atom {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #38bdf8, #a855f7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+    transition: transform 0.4s var(--bounce);
+    cursor: pointer;
+  }
+  .brand-atom:hover { transform: rotate(180deg) scale(1.15); }
+
+  .brand h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    background: linear-gradient(90deg, #fff, #93c5fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .brand span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.14);
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+  }
+
+  .controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    padding: 6px 11px;
+    border-radius: 12px;
+    transition: transform 0.25s var(--bounce), border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .control-group:hover {
+    transform: translateY(-2px);
+    border-color: #3b4f7a;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+  }
+
+  .control-group label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input[type="search"], select {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    outline: none;
+  }
+  select option { background: var(--panel); color: var(--text); }
+  input[type="search"] { width: 175px; }
+
+  .temp-control input[type="range"] {
+    width: 125px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .temp-readout {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--accent);
+    min-width: 68px;
+    text-align: right;
+  }
+
+  .bouncy-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: transform 0.28s var(--bounce), background 0.15s ease, border-color 0.15s ease;
+  }
+  .bouncy-btn:hover {
+    transform: scale(1.08) translateY(-1px);
+    background: rgba(56, 189, 248, 0.2);
+    border-color: var(--accent);
+  }
+  .bouncy-btn:active { transform: scale(0.92); }
+  .bouncy-btn.active {
+    background: rgba(56, 189, 248, 0.25);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+  }
+
+  /* Filter Chips */
+  .filter-bar {
+    padding: 9px 20px;
+    background: rgba(11, 16, 29, 0.75);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 0.3s var(--bounce), background 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease;
+    user-select: none;
+  }
+
+  .chip:hover {
+    transform: translateY(-2px) scale(1.05);
+    border-color: #5b729e;
+  }
+  .chip:active { transform: scale(0.93); }
+  .chip.active {
+    border-color: #fff;
+    background: rgba(56, 189, 248, 0.24);
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+    transform: scale(1.06);
+  }
+
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  /* Main Layout */
+  .workspace {
+    display: flex;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .table-scroll {
+    flex: 1;
+    overflow: auto;
+    padding: 14px 20px 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .legend-strip {
+    width: 100%;
+    max-width: 1380px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.76rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .state-badges {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .state-badges span { display: inline-flex; align-items: center; gap: 5px; }
+  .state-pill {
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    background: rgba(255,255,255,0.09);
+  }
+  .state-solid { color: #f1f5f9; }
+  .state-liquid { color: #38bdf8; }
+  .state-gas { color: #fb7185; }
+  .state-unknown { color: #94a3b8; }
+
+  .trend-scale {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+  }
+  .trend-scale.visible { display: flex; }
+  .gradient-bar {
+    width: 140px;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #1e293b, #0284c7, #38bdf8, #fde047, #ef4444);
+    border: 1px solid var(--border);
+  }
+
+  /* Periodic Table Grid */
+  .ptable {
+    display: grid;
+    grid-template-columns: 24px repeat(18, minmax(60px, 1fr));
+    grid-template-rows: 22px repeat(7, minmax(76px, auto)) 14px repeat(2, minmax(76px, auto));
+    gap: 5px;
+    width: 100%;
+    max-width: 1380px;
+  }
+
+  .axis-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .series-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 2px;
+    background: rgba(255,255,255,0.02);
+  }
+
+  /* Bouncy Element Tile with Mini Bohr Ring */
+  @keyframes tilePopIn {
+    0% { opacity: 0; transform: scale(0.55) translateY(14px); }
+    70% { opacity: 1; transform: scale(1.06) translateY(-2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  @keyframes tileJellyClick {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.22, 0.86); }
+    55% { transform: scale(0.92, 1.12); }
+    75% { transform: scale(1.06, 0.97); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes waveRipple {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.16) translateY(-4px); box-shadow: 0 10px 24px rgba(56, 189, 248, 0.5); }
+    100% { transform: scale(1); }
+  }
+
+  .el-tile {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 4px 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: transform 0.35s var(--bounce), box-shadow 0.25s ease, opacity 0.2s ease, border-color 0.2s ease;
+    outline: none;
+    user-select: none;
+    min-height: 76px;
+    overflow: hidden;
+    animation: tilePopIn 0.45s var(--bounce) backwards;
+  }
+
+  .el-tile:hover, .el-tile:focus-visible {
+    transform: translateY(-6px) scale(1.13) rotate(-1.5deg);
+    z-index: 20;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.65), 0 0 18px rgba(56, 189, 248, 0.45);
+    border-color: #ffffff;
+  }
+
+  .el-tile.jelly-click {
+    animation: tileJellyClick 0.48s var(--bounce);
+  }
+
+  .el-tile.wave-bounce {
+    animation: waveRipple 0.5s var(--bounce);
+  }
+
+  .el-tile.selected {
+    box-shadow: 0 0 0 2.5px #ffffff, 0 10px 26px rgba(56, 189, 248, 0.6);
+    transform: translateY(-3px) scale(1.06);
+    z-index: 15;
+  }
+
+  .el-tile.compare-selected {
+    box-shadow: 0 0 0 2.5px #facc15, 0 10px 24px rgba(250, 204, 21, 0.45);
+    z-index: 14;
+  }
+
+  .el-tile.dimmed {
+    opacity: 0.14;
+    filter: grayscale(0.8);
+    transform: scale(0.95);
+  }
+
+  /* Mini Bohr SVG inside every tile */
+  .mini-bohr-wrap {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0.42;
+    transition: opacity 0.25s ease, transform 0.4s var(--bounce);
+  }
+
+  .el-tile:hover .mini-bohr-wrap,
+  .el-tile.selected .mini-bohr-wrap,
+  body.bohr-focus .mini-bohr-wrap {
+    opacity: 0.88;
+    transform: scale(1.08);
+  }
+
+  body.bohr-focus .symbol {
+    font-size: 0.92rem;
+    opacity: 0.92;
+  }
+
+  .tile-top {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.63rem;
+    line-height: 1;
+  }
+
+  .atomic-num { font-weight: 800; opacity: 0.95; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+
+  .phase-tag {
+    font-size: 0.56rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.5);
+  }
+
+  .symbol {
+    position: relative;
+    z-index: 2;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.4px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.85);
+    transition: font-size 0.2s ease;
+  }
+
+  .tile-bottom {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .el-name {
+    font-size: 0.56rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.92;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+  }
+
+  .el-sub {
+    font-size: 0.53rem;
+    opacity: 0.78;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+  }
+
+  /* Category Tints */
+  .cat-alkali      { background: linear-gradient(145deg, rgba(255,71,87,0.32), rgba(255,71,87,0.12)); border-color: rgba(255,71,87,0.6); }
+  .cat-alkaline    { background: linear-gradient(145deg, rgba(255,127,80,0.32), rgba(255,127,80,0.12)); border-color: rgba(255,127,80,0.6); }
+  .cat-transition  { background: linear-gradient(145deg, rgba(255,190,11,0.28), rgba(255,190,11,0.10)); border-color: rgba(255,190,11,0.55); }
+  .cat-post        { background: linear-gradient(145deg, rgba(46,213,115,0.28), rgba(46,213,115,0.10)); border-color: rgba(46,213,115,0.55); }
+  .cat-metalloid   { background: linear-gradient(145deg, rgba(0,210,211,0.30), rgba(0,210,211,0.11)); border-color: rgba(0,210,211,0.58); }
+  .cat-nonmetal    { background: linear-gradient(145deg, rgba(59,130,246,0.34), rgba(59,130,246,0.13)); border-color: rgba(59,130,246,0.62); }
+  .cat-noble       { background: linear-gradient(145deg, rgba(168,85,247,0.34), rgba(168,85,247,0.13)); border-color: rgba(168,85,247,0.62); }
+  .cat-lanthanide  { background: linear-gradient(145deg, rgba(255,107,129,0.30), rgba(255,107,129,0.11)); border-color: rgba(255,107,129,0.58); }
+  .cat-actinide    { background: linear-gradient(145deg, rgba(244,63,94,0.30), rgba(244,63,94,0.11)); border-color: rgba(244,63,94,0.58); }
+  .cat-unknown     { background: linear-gradient(145deg, rgba(100,116,139,0.28), rgba(100,116,139,0.11)); border-color: rgba(100,116,139,0.55); }
+
+  /* Floating Click Particle Sparkles */
+  .spark-particle {
+    position: fixed;
+    pointer-events: none;
+    border-radius: 50%;
+    z-index: 999;
+    animation: sparkFly 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes sparkFly {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+  }
+
+  /* Inspector Drawer */
+  .inspector {
+    width: 410px;
+    max-width: 100vw;
+    background: rgba(15, 22, 38, 0.96);
+    backdrop-filter: blur(16px);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    transition: transform 0.35s var(--bounce);
+  }
+
+  .inspector.closed {
+    display: none;
+  }
+
+  .inspector-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .hero-badge {
+    width: 66px;
+    height: 66px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(255,255,255,0.3);
+    flex-shrink: 0;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    transition: transform 0.35s var(--bounce);
+    cursor: pointer;
+  }
+  .hero-badge:hover { transform: scale(1.1) rotate(-4deg); }
+  .hero-badge .num { font-size: 0.75rem; font-weight: 800; }
+  .hero-badge .sym { font-family: 'Space Grotesk', sans-serif; font-size: 1.7rem; font-weight: 800; line-height: 1.05; }
+
+  .hero-title { flex: 1; }
+  .hero-title h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 800; }
+  .hero-title .cat-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
+  .inspector-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .inspector-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .summary-text {
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: #cbd5e1;
+    background: var(--panel-alt);
+    padding: 11px 13px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  /* Interactive Bohr Sandbox Card */
+  .bohr-box {
+    background: radial-gradient(circle at 50% 50%, #10192e 0%, #060911 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+
+  .bohr-toolbar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .shell-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .shell-pill {
+    background: rgba(56, 189, 248, 0.14);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    color: #bae6fd;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.25s var(--bounce), background 0.15s ease;
+  }
+  .shell-pill:hover, .shell-pill.active {
+    transform: scale(1.12);
+    background: rgba(56, 189, 248, 0.35);
+    color: #fff;
+    border-color: #fff;
+  }
+
+  .bohr-caption {
+    font-size: 0.74rem;
+    color: var(--muted);
+    margin-top: 8px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .prop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .prop-card {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    transition: transform 0.25s var(--bounce), border-color 0.2s ease;
+  }
+  .prop-card:hover {
+    transform: translateY(-2px) scale(1.02);
+    border-color: #475d8a;
+  }
+  .prop-card.full { grid-column: 1 / -1; }
+
+  .prop-label {
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+
+  .prop-val {
+    font-size: 0.86rem;
+    font-weight: 700;
+    margin-top: 2px;
+    word-break: break-word;
+  }
+
+  /* Comparison Table */
+  .compare-panel {
+    background: var(--panel-alt);
+    border: 1.5px solid #facc15;
+    border-radius: 12px;
+    padding: 10px;
+  }
+  .compare-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #fef08a;
+  }
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+  }
+  .compare-table th, .compare-table td {
+    padding: 5px 6px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .compare-table th { color: var(--muted); font-weight: 700; }
+
+  @keyframes spinOrbit {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes spinOrbitReverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+
+  .orbit-ring {
+    transform-origin: 120px 120px;
+    animation: spinOrbit linear infinite;
+  }
+  .orbit-ring.reverse {
+    animation-name: spinOrbitReverse;
+  }
+  .orbit-ring.paused {
+    animation-play-state: paused;
+  }
+
+  /* Subtle spin on hovered tile mini Bohr */
+  .el-tile:hover .mini-orbit {
+    transform-origin: 32px 32px;
+    animation: spinOrbit 5s linear infinite;
+  }
+
+  @media (max-width: 960px) {
+    .inspector {
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 50;
+      box-shadow: -12px 0 36px rgba(0,0,0,0.8);
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-atom" id="waveBtn" title="Trigger Bouncy Wave Across All 118 Elements!">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2">
+        <circle cx="12" cy="12" r="2.5" fill="#fff"/>
+        <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(30 12 12)"/>
+        <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-30 12 12)"/>
+        <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(90 12 12)"/>
+      </svg>
+    </div>
+    <h1>Periodic Table</h1>
+    <span>118 Bohr Models</span>
+  </div>
+
+  <div class="controls-bar">
+    <div class="control-group">
+      <label for="searchInput">Search</label>
+      <input id="searchInput" type="search" placeholder="Name, symbol, or # (Au, 79)" autocomplete="off" />
+    </div>
+
+    <div class="control-group">
+      <label for="trendSelect">View Mode</label>
+      <select id="trendSelect">
+        <option value="category">Chemical Category</option>
+        <option value="cosmic">🌍 Cosmic Origin (Nucleosynthesis)</option>
+        <option value="body">🧬 Human Body Composition (%)</option>
+        <option value="crust">🪨 Earth's Crust Abundance (%)</option>
+        <option value="block">Orbital Block (s, p, d, f)</option>
+        <option value="phase">Phase at Current Temp</option>
+        <option value="shells">Electron Shell Count (1–7)</option>
+        <option value="electronegativity">Trend: Electronegativity</option>
+        <option value="radius">Trend: Atomic Radius (pm)</option>
+        <option value="ionization">Trend: Ionization Energy (eV)</option>
+        <option value="density">Trend: Density (g/cm³)</option>
+      </select>
+    </div>
+
+    <div class="control-group temp-control">
+      <label for="tempSlider">Temp</label>
+      <input id="tempSlider" type="range" min="0" max="6000" value="298" step="1" />
+      <span id="tempReadout" class="temp-readout">298 K</span>
+      <select id="tempUnit" aria-label="Temperature Unit">
+        <option value="K">K</option>
+        <option value="C">°C</option>
+        <option value="F">°F</option>
+      </select>
+      <button id="stpBtn" class="bouncy-btn" title="Reset to 298 K (25 °C)">STP</button>
+    </div>
+
+    <button id="tilt3dBtn" class="bouncy-btn" title="Enable 3D Parallax Perspective & Specular Lighting">🌐 3D Tilt</button>
+    <button id="bohrFocusBtn" class="bouncy-btn" title="Highlight Bohr rings on all 118 tiles">Bohr Focus</button>
+    <button id="labToggleBtn" class="bouncy-btn active" title="Toggle Interactive Molecule & Bond Lab Dock">🧪 Bond Lab</button>
+    <button id="soundToggleBtn" class="bouncy-btn active" title="Toggle interactive harmonic chimes">🔊 Sound</button>
+  </div>
+</header>
+
+<div class="filter-bar" id="filterBar"></div>
+
+<div class="workspace">
+  <div class="table-scroll" id="tableScroll">
+    <div class="legend-strip">
+      <div class="state-badges" id="legendBadges">
+        <span><strong class="state-pill state-solid">S</strong> Solid</span>
+        <span><strong class="state-pill state-liquid">L</strong> Liquid</span>
+        <span><strong class="state-pill state-gas">G</strong> Gas</span>
+        <span><strong class="state-pill state-unknown">?</strong> Unknown</span>
+        <span>• Drag or click <strong>+ Lab</strong> on any element to bond molecules</span>
+      </div>
+      <div class="trend-scale" id="trendScale">
+        <span id="trendMin">Low</span>
+        <div class="gradient-bar"></div>
+        <span id="trendMax">High</span>
+      </div>
+    </div>
+
+    <div class="ptable-perspective-stage" id="ptableStage">
+      <div class="ptable" id="ptable" role="grid" aria-label="Periodic Table of Elements"></div>
+    </div>
+
+    <!-- 🧪 Interactive Molecule & Bond Lab Dock -->
+    <section class="bond-lab-dock" id="bondLabDock" aria-label="Interactive Molecule and Bond Lab">
+      <div class="lab-header">
+        <div class="lab-title-group">
+          <span class="lab-badge">🧪 MOLECULE &amp; BOND LAB</span>
+          <span class="lab-hint">Drag elements here, click <strong>+ Add to Lab</strong> in the inspector, or pick a preset:</span>
+        </div>
+        <div class="lab-presets">
+          <button class="bouncy-btn preset-btn" data-preset="1,1,8">H₂O (Water)</button>
+          <button class="bouncy-btn preset-btn" data-preset="11,17">NaCl (Salt)</button>
+          <button class="bouncy-btn preset-btn" data-preset="6,8,8">CO₂</button>
+          <button class="bouncy-btn preset-btn" data-preset="6,1,1,1,1">CH₄ (Methane)</button>
+          <button class="bouncy-btn preset-btn" data-preset="7,1,1,1">NH₃ (Ammonia)</button>
+          <button class="bouncy-btn preset-btn" data-preset="26,26,8,8,8">Fe₂O₃ (Rust)</button>
+          <button class="bouncy-btn" id="lab3dToggleBtn" title="Switch between 2D Valence View and 3D Molecular Geometry">🌐 3D Model</button>
+          <button class="bouncy-btn" id="clearLabBtn">Clear</button>
+        </div>
+      </div>
+
+      <div class="lab-body">
+        <div class="reaction-chamber" id="reactionChamber">
+          <div class="chamber-empty" id="chamberEmpty">Drop or add 2+ atoms to synthesize &amp; visualize live valence bonding</div>
+          <svg id="bondCanvasSvg" width="100%" height="230" viewBox="0 0 640 230" style="display:none; cursor:grab;"></svg>
+          <canvas id="bondCanvas3D" style="display:none; width:100%; height:230px; cursor:grab;"></canvas>
+          <div id="lab3dHint" style="display:none; position:absolute; bottom:6px; right:10px; font-size:0.68rem; color:#94a3b8; pointer-events:none;">Drag to rotate 3D molecule</div>
+        </div>
+
+        <div class="molecule-readout" id="moleculeReadout">
+          <div class="mol-formula" id="molFormula">—</div>
+          <div class="mol-name" id="molName">Awaiting Reactants</div>
+          <div class="mol-meta" id="molMeta">Select or drag elements to start</div>
+          <div class="lab-atoms-list" id="labAtomsList"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="inspector" id="inspector" aria-label="Element Inspector">
+    <div class="inspector-header">
+      <div class="hero-badge" id="insBadge" title="Click to bounce & chime!">
+        <span class="num" id="insNum">1</span>
+        <span class="sym" id="insSym">H</span>
+      </div>
+      <div class="hero-title">
+        <h2 id="insName">Hydrogen</h2>
+        <div class="cat-label" id="insCat">Reactive Nonmetal</div>
+      </div>
+      <div class="inspector-actions">
+        <button class="bouncy-btn" id="addToLabBtn" title="Add element to Molecule & Bond Lab">+ Lab</button>
+        <button class="bouncy-btn" id="compareBtn" title="Pin/Compare with another element">Compare</button>
+        <button class="bouncy-btn" id="closeInspector" title="Close (Esc)">✕</button>
+      </div>
+    </div>
+
+    <div class="inspector-body">
+      <p class="summary-text" id="insSummary"></p>
+
+      <div id="compareContainer" class="compare-panel" style="display:none;">
+        <div class="compare-header">
+          <span>Side-by-Side Comparison</span>
+          <button class="bouncy-btn" id="clearCompare">Clear</button>
+        </div>
+        <table class="compare-table" id="compareTable"></table>
+      </div>
+
+      <!-- Interactive Bohr + 3D Orbital Cloud + Excite Photon Sandbox -->
+      <div class="bohr-box">
+        <div class="bohr-toolbar">
+          <span id="atomViewTitle">INTERACTIVE BOHR ATOM</span>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+            <button class="bouncy-btn" id="orbitalModeBtn" title="Switch between 2D Bohr Shells and 3D s/p/d/f Quantum Orbitals">3D Cloud</button>
+            <button class="bouncy-btn" id="excitePhotonBtn" title="Shoot a photon to excite an electron & emit a flame-test photon">⚡ Excite</button>
+            <button class="bouncy-btn" id="toggleOrbitBtn">Pause</button>
+            <button class="bouncy-btn" id="boostOrbitBtn">Spin</button>
+          </div>
+        </div>
+
+        <svg id="bohrSvg" width="250" height="250" viewBox="0 0 250 250" aria-label="Interactive Bohr and 3D Orbital model"></svg>
+        <div class="shell-pills" id="shellPills"></div>
+        <div class="bohr-caption" id="bohrCaption">Shells: 1</div>
+      </div>
+
+      <!-- 🌈 Real Atomic Emission Spectra & Flame Test Simulator -->
+      <div class="spectro-box">
+        <div class="spectro-header">
+          <span>🌈 EMISSION SPECTRUM &amp; FLAME TEST</span>
+          <span class="flame-badge" id="flameBadge">Flame: Pale Violet</span>
+        </div>
+        <div class="spectrum-bar" id="spectrumBar" title="Visible Emission Lines (400 nm – 700 nm)"></div>
+        <div class="spectrum-axis">
+          <span>400 nm (Violet)</span>
+          <span>550 nm (Green)</span>
+          <span>700 nm (Red)</span>
+        </div>
+      </div>
+
+      <!-- ☢️ Interactive Nucleus & Isotope Builder -->
+      <div class="isotope-box">
+        <div class="isotope-header">
+          <span>☢️ NUCLEUS &amp; ISOTOPE BUILDER</span>
+          <span class="stability-pill stable" id="stabilityPill">STABLE</span>
+        </div>
+        <div class="isotope-controls">
+          <div class="nuc-stat">
+            <span class="nuc-label">Protons (Z)</span>
+            <strong id="nucProtons">1</strong>
+          </div>
+          <div class="nuc-stat">
+            <span class="nuc-label">Neutrons (N)</span>
+            <div class="neutron-stepper">
+              <button class="bouncy-btn" id="decNeutronBtn" title="Remove Neutron">−</button>
+              <strong id="nucNeutrons">0</strong>
+              <button class="bouncy-btn" id="incNeutronBtn" title="Add Neutron">+</button>
+            </div>
+          </div>
+          <div class="nuc-stat">
+            <span class="nuc-label">Isotope</span>
+            <strong id="isotopeName">¹H</strong>
+          </div>
+        </div>
+        <div class="decay-row">
+          <span class="decay-info" id="decayInfo">Balanced nuclear force (N/Z = 0.00)</span>
+          <button class="bouncy-btn decay-btn" id="triggerDecayBtn" style="display:none;">☢️ Trigger Decay</button>
+        </div>
+      </div>
+
+      <div class="prop-grid" id="propGrid"></div>
+    </div>
+  </aside>
+</div>
+
+<style>
+  /* Additional Styles for 3D Tilt, Cosmic/Abundance Views, Bond Lab, Spectroscope & Isotope Builder */
+  .ptable-perspective-stage {
+    width: 100%;
+    max-width: 1380px;
+    perspective: 1400px;
+    transition: transform 0.2s ease-out;
+  }
+
+  .ptable.tilt-active {
+    transform-style: preserve-3d;
+    transition: transform 0.12s ease-out;
+  }
+
+  .el-tile::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.22), transparent 65%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  body.tilt-3d-on .el-tile:hover::after {
+    opacity: 1;
+  }
+
+  /* Cosmic Origin Legend Pills */
+  .cosmic-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  /* Molecule & Bond Lab Dock */
+  .bond-lab-dock {
+    width: 100%;
+    max-width: 1380px;
+    margin-top: 18px;
+    background: linear-gradient(145deg, rgba(16, 24, 42, 0.95), rgba(10, 15, 28, 0.98));
+    border: 1.5px solid #2d3f66;
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .bond-lab-dock.drag-over {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35), 0 16px 40px rgba(0, 0, 0, 0.65);
+  }
+  .bond-lab-dock.hidden { display: none; }
+
+  .lab-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .lab-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .lab-badge {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.14);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .lab-hint {
+    font-size: 0.76rem;
+    color: var(--muted);
+  }
+  .lab-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .lab-body {
+    display: grid;
+    grid-template-columns: 1fr 290px;
+    gap: 14px;
+    align-items: stretch;
+  }
+  @media (max-width: 860px) {
+    .lab-body { grid-template-columns: 1fr; }
+  }
+
+  .reaction-chamber {
+    background: radial-gradient(circle at 50% 50%, #111c36 0%, #070b14 100%);
+    border: 1.5px dashed #334873;
+    border-radius: 12px;
+    min-height: 230px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .chamber-empty {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-align: center;
+    padding: 16px;
+  }
+
+  .molecule-readout {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .mol-formula {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #38bdf8;
+    line-height: 1.1;
+  }
+  .mol-name {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+  .mol-meta {
+    font-size: 0.74rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .lab-atoms-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 4px;
+  }
+  .atom-token {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #fff;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.3);
+    transition: transform 0.2s var(--bounce);
+  }
+  .atom-token:hover { transform: scale(1.1); }
+
+  /* Emission Spectrum & Flame Test Card */
+  .spectro-box, .isotope-box {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 11px 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .spectro-header, .isotope-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--muted);
+  }
+  .flame-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  .spectrum-bar {
+    height: 26px;
+    border-radius: 7px;
+    background: #04060b;
+    border: 1px solid #2b3a59;
+    position: relative;
+    overflow: hidden;
+  }
+  .spec-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2.5px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 8px currentColor;
+  }
+  .spectrum-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.64rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* Isotope Builder */
+  .isotope-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .nuc-stat {
+    background: rgba(9, 14, 26, 0.7);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .nuc-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .neutron-stepper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .neutron-stepper .bouncy-btn {
+    padding: 1px 7px;
+    font-size: 0.8rem;
+  }
+  .stability-pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
+  .stability-pill.stable {
+    background: rgba(46, 213, 115, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(46, 213, 115, 0.45);
+  }
+  .stability-pill.radioactive {
+    background: rgba(255, 71, 87, 0.24);
+    color: #ff6b81;
+    border: 1px solid rgba(255, 71, 87, 0.55);
+  }
+  .decay-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    color: #cbd5e1;
+  }
+  .decay-btn {
+    background: rgba(255, 71, 87, 0.25);
+    border-color: #ff4757;
+    color: #fecdd3;
+  }
+
+  /* Photon Excitation Pulse */
+  @keyframes photonBurst {
+    0% { r: 22; opacity: 0.95; stroke-width: 5; }
+    100% { r: 120; opacity: 0; stroke-width: 0.5; }
+  }
+  .photon-wave {
+    fill: none;
+    animation: photonBurst 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+</style>
+
+<script>
+/**
+ * Complete dataset for all 118 elements.
+ * Tuple format:
+ * [0:Z, 1:Sym, 2:Name, 3:Mass, 4:Category, 5:Group, 6:Period, 7:Block,
+ *  8:Melt(K), 9:Boil(K), 10:Density(g/cm3), 11:Electronegativity(Pauling),
+ *  12:AtomicRadius(pm), 13:IonizationEnergy(eV), 14:ElectronConfig,
+ *  15:Discovery, 16:Summary]
+ */
+const RAW_ELEMENTS = [
+  [1,"H","Hydrogen",1.008,"nonmetal",1,1,"s",13.99,20.271,0.00008988,2.20,53,13.598,"1s1","Henry Cavendish (1766)","Lightest and most abundant chemical element in the universe, fueling stars via nuclear fusion."],
+  [2,"He","Helium",4.0026,"noble",18,1,"s",0.95,4.222,0.0001786,null,31,24.587,"1s2","Pierre Janssen & Norman Lockyer (1868)","Colorless, inert noble gas with the lowest boiling point of any element; used in cryogenics and MRI magnets."],
+  [3,"Li","Lithium",6.94,"alkali",1,2,"s",453.65,1603,0.534,0.98,167,5.392,"[He] 2s1","Johan August Arfwedson (1817)","Soft, silvery-white alkali metal and the least dense solid element; essential for rechargeable lithium-ion batteries."],
+  [4,"Be","Beryllium",9.0122,"alkaline",2,2,"s",1560,2742,1.85,1.57,112,9.323,"[He] 2s2","Louis Nicolas Vauquelin (1798)","Lightweight, high-melting alkaline earth metal used in aerospace alloys and X-ray windows."],
+  [5,"B","Boron",10.81,"metalloid",13,2,"p",2349,4200,2.34,2.04,87,8.298,"[He] 2s2 2p1","Joseph Louis Gay-Lussac & Humphry Davy (1808)","Hard, high-melting metalloid crucial to borosilicate glass, neodymium magnets, and fiberglass."],
+  [6,"C","Carbon",12.011,"nonmetal",14,2,"p",3823,4098,2.267,2.55,67,11.260,"[He] 2s2 2p2","Known since antiquity","Tetravalent nonmetal forming the chemical backbone of all known organic life, diamond, and graphene."],
+  [7,"N","Nitrogen",14.007,"nonmetal",15,2,"p",63.15,77.355,0.0012506,3.04,56,14.534,"[He] 2s2 2p3","Daniel Rutherford (1772)","Diatomic gas making up 78% of Earth's atmosphere; vital component of amino acids, DNA, and fertilizers."],
+  [8,"O","Oxygen",15.999,"nonmetal",16,2,"p",54.36,90.188,0.001429,3.44,48,13.618,"[He] 2s2 2p4","Carl Wilhelm Scheele & Joseph Priestley (1774)","Highly reactive nonmetal essential for cellular respiration and combustion; third most abundant element in the cosmos."],
+  [9,"F","Fluorine",18.998,"nonmetal",17,2,"p",53.48,85.03,0.001696,3.98,42,17.423,"[He] 2s2 2p5","Henri Moissan (1886)","Most electronegative and chemically reactive of all elements, forming compounds with almost every other element."],
+  [10,"Ne","Neon",20.180,"noble",18,2,"p",24.56,27.104,0.0009002,null,38,21.565,"[He] 2s2 2p6","William Ramsay & Morris Travers (1898)","Inert noble gas that emits a bright reddish-orange glow in high-voltage discharge tubes."],
+  [11,"Na","Sodium",22.990,"alkali",1,3,"s",370.944,1156.09,0.968,0.93,190,5.139,"[Ne] 3s1","Humphry Davy (1807)","Soft, reactive alkali metal essential for nerve impulse transmission and fluid balance in living organisms."],
+  [12,"Mg","Magnesium",24.305,"alkaline",2,3,"s",923,1363,1.738,1.31,145,7.646,"[Ne] 3s2","Joseph Black (1755)","Lightweight structural metal and the central ion in chlorophyll molecules driving photosynthesis."],
+  [13,"Al","Aluminium",26.982,"post",13,3,"p",933.47,2743,2.70,1.61,118,5.986,"[Ne] 3s2 3p1","Hans Christian Ørsted (1825)","Most abundant metal in Earth's crust; prized for low density, corrosion resistance, and high conductivity."],
+  [14,"Si","Silicon",28.085,"metalloid",14,3,"p",1687,3538,2.329,1.90,111,8.152,"[Ne] 3s2 3p2","Jöns Jacob Berzelius (1823)","Semiconducting metalloid forming the foundation of modern integrated circuits, solar cells, and silicate minerals."],
+  [15,"P","Phosphorus",30.974,"nonmetal",15,3,"p",317.3,553.7,1.823,2.19,98,10.487,"[Ne] 3s2 3p3","Hennig Brand (1669)","Reactive nonmetal found in white, red, and black allotropes; indispensable for ATP, DNA, and bones."],
+  [16,"S","Sulfur",32.06,"nonmetal",16,3,"p",388.36,717.8,2.07,2.58,88,10.360,"[Ne] 3s2 3p4","Known since antiquity","Bright yellow multivalent nonmetal used in sulfuric acid production, rubber vulcanization, and amino acids."],
+  [17,"Cl","Chlorine",35.45,"nonmetal",17,3,"p",171.6,239.11,0.0032,3.16,79,12.968,"[Ne] 3s2 3p5","Carl Wilhelm Scheele (1774)","Yellow-green halogen gas widely used for water disinfection, PVC manufacturing, and chemical synthesis."],
+  [18,"Ar","Argon",39.948,"noble",18,3,"p",83.81,87.302,0.001784,null,71,15.760,"[Ne] 3s2 3p6","Lord Rayleigh & William Ramsay (1894)","Third most abundant gas in Earth's atmosphere (~0.93%); used as an inert shielding gas in welding."],
+  [19,"K","Potassium",39.098,"alkali",1,4,"s",336.7,1032,0.862,0.82,243,4.341,"[Ar] 4s1","Humphry Davy (1807)","Highly reactive alkali metal vital to cellular electrochemistry and agricultural fertilizers."],
+  [20,"Ca","Calcium",40.078,"alkaline",2,4,"s",1115,1757,1.55,1.00,194,6.113,"[Ar] 4s2","Humphry Davy (1808)","Most abundant metal in the human body, providing structural strength to bones, teeth, and shells."],
+  [21,"Sc","Scandium",44.956,"transition",3,4,"d",1814,3109,2.985,1.36,184,6.561,"[Ar] 3d1 4s2","Lars Fredrik Nilson (1879)","Silvery transition metal used in high-strength aerospace aluminium-scandium alloys and solid oxide fuel cells."],
+  [22,"Ti","Titanium",47.867,"transition",4,4,"d",1941,3560,4.506,1.54,176,6.828,"[Ar] 3d2 4s2","William Gregor (1791)","Strong, low-density, biocompatible transition metal resistant to seawater and chlorine corrosion."],
+  [23,"V","Vanadium",50.942,"transition",5,4,"d",2183,3680,6.11,1.63,171,6.746,"[Ar] 3d3 4s2","Andrés Manuel del Río (1801)","Hard transition metal used to toughen tool steels and build grid-scale vanadium redox flow batteries."],
+  [24,"Cr","Chromium",51.996,"transition",6,4,"d",2180,2944,7.15,1.66,166,6.767,"[Ar] 3d5 4s1","Louis Nicolas Vauquelin (1797)","Lustrous, hard metal that gives stainless steel its corrosion resistance and emeralds their green hue."],
+  [25,"Mn","Manganese",54.938,"transition",7,4,"d",1519,2334,7.21,1.55,161,7.434,"[Ar] 3d5 4s2","Johan Gottlieb Gahn (1774)","Essential alloying metal in steelmaking and a key cathode component in modern EV batteries."],
+  [26,"Fe","Iron",55.845,"transition",8,4,"d",1811,3134,7.874,1.83,156,7.902,"[Ar] 3d6 4s2","Known since antiquity","Most used industrial metal on Earth and the oxygen-binding core of hemoglobin in blood."],
+  [27,"Co","Cobalt",58.933,"transition",9,4,"d",1768,3200,8.90,1.88,152,7.881,"[Ar] 3d7 4s2","Georg Brandt (1735)","Ferromagnetic metal used in superalloys, lithium-ion cathodes, blue pigments, and vitamin B12."],
+  [28,"Ni","Nickel",58.693,"transition",10,4,"d",1728,3003,8.908,1.91,149,7.640,"[Ar] 3d8 4s2","Axel Fredrik Cronstedt (1751)","Corrosion-resistant ferromagnetic metal vital to stainless steel, coinage, and rechargeable batteries."],
+  [29,"Cu","Copper",63.546,"transition",11,4,"d",1357.77,2835,8.96,1.90,145,7.726,"[Ar] 3d10 4s1","Known since antiquity","Ductile reddish metal with exceptional electrical and thermal conductivity, used for millennia."],
+  [30,"Zn","Zinc",65.38,"transition",12,4,"d",692.68,1180,7.14,1.65,142,9.394,"[Ar] 3d10 4s2","Andreas Sigismund Marggraf (1746)","Bluish-white metal used to galvanize steel against rust, form brass with copper, and support enzyme function."],
+  [31,"Ga","Gallium",69.723,"post",13,4,"p",302.9146,2673,5.91,1.81,136,5.999,"[Ar] 3d10 4s2 4p1","Lecoq de Boisbaudran (1875)","Soft metal that melts right in your hand (29.76 °C); essential for GaAs semiconductors and blue LEDs."],
+  [32,"Ge","Germanium",72.630,"metalloid",14,4,"p",1211.40,3106,5.323,2.01,125,7.900,"[Ar] 3d10 4s2 4p2","Clemens Winkler (1886)","Lustrous metalloid predicted by Mendeleev; used in fiber-optic systems, infrared optics, and transistors."],
+  [33,"As","Arsenic",74.922,"metalloid",15,4,"p",1090,887,5.727,2.18,114,9.789,"[Ar] 3d10 4s2 4p3","Albertus Magnus (c. 1250)","Notorious toxic metalloid that sublimates at atmospheric pressure; used in GaAs high-speed electronics."],
+  [34,"Se","Selenium",78.971,"nonmetal",16,4,"p",494,958,4.81,2.55,103,9.752,"[Ar] 3d10 4s2 4p4","Jöns Jacob Berzelius (1817)","Photoconductive nonmetal used in glass decolorizing, solar cells, and essential antioxidant selenoproteins."],
+  [35,"Br","Bromine",79.904,"nonmetal",17,4,"p",265.8,332.0,3.1028,2.96,94,11.814,"[Ar] 3d10 4s2 4p5","Antoine Jérôme Balard (1826)","Fuming red-brown liquid at room temperature—one of only two elements liquid at standard conditions."],
+  [36,"Kr","Krypton",83.798,"noble",18,4,"p",115.78,119.93,0.003749,3.00,88,14.000,"[Ar] 3d10 4s2 4p6","William Ramsay & Morris Travers (1898)","Heavy noble gas used in high-efficiency window insulation, excimer lasers, and specialized lighting."],
+  [37,"Rb","Rubidium",85.468,"alkali",1,5,"s",312.45,961,1.532,0.82,265,4.177,"[Kr] 5s1","Robert Bunsen & Gustav Kirchhoff (1861)","Soft, pyrophoric alkali metal used in atomic clocks, laser cooling experiments, and photocells."],
+  [38,"Sr","Strontium",87.62,"alkaline",2,5,"s",1050,1650,2.64,0.95,219,5.695,"[Kr] 5s2","Adair Crawford (1790)","Reactive alkaline earth metal responsible for brilliant crimson colors in fireworks and flares."],
+  [39,"Y","Yttrium",88.906,"transition",3,5,"d",1799,3203,4.472,1.22,212,6.217,"[Kr] 4d1 5s2","Johan Gadolin (1794)","Transition metal chemically similar to lanthanides; key component of YAG lasers and white LED phosphors."],
+  [40,"Zr","Zirconium",91.224,"transition",4,5,"d",2128,4650,6.52,1.33,206,6.634,"[Kr] 4d2 5s2","Martin Heinrich Klaproth (1789)","Corrosion-resistant metal transparent to thermal neutrons, ideal for nuclear reactor fuel cladding."],
+  [41,"Nb","Niobium",92.906,"transition",5,5,"d",2750,5017,8.57,1.6,198,6.759,"[Kr] 4d4 5s1","Charles Hatchett (1801)","Ductile refractory metal used in superconducting MRI magnets, particle accelerators, and HSLA steel."],
+  [42,"Mo","Molybdenum",95.95,"transition",6,5,"d",2896,4912,10.28,2.16,190,7.092,"[Kr] 4d5 5s1","Carl Wilhelm Scheele (1778)","High-melting transition metal that strengthens high-temperature steel alloys and catalyzes nitrogen fixation."],
+  [43,"Tc","Technetium",98,"transition",7,5,"d",2430,4538,11,1.9,183,7.280,"[Kr] 4d5 5s2","Carlo Perrier & Emilio Segrè (1937)","Lightest exclusively radioactive element; its metastable isotope Tc-99m is the workhorse of nuclear medicine."],
+  [44,"Ru","Ruthenium",101.07,"transition",8,5,"d",2607,4423,12.45,2.2,178,7.361,"[Kr] 4d7 5s1","Karl Ernst Claus (1844)","Rare platinum-group metal used to harden electrical contacts and catalyze chemical reactions."],
+  [45,"Rh","Rhodium",102.91,"transition",9,5,"d",2237,3968,12.41,2.28,173,7.459,"[Kr] 4d8 5s1","William Hyde Wollaston (1803)","Ultra-reflective, corrosion-proof noble metal essential in automotive catalytic converters."],
+  [46,"Pd","Palladium",106.42,"transition",10,5,"d",1828.05,3236,12.023,2.20,169,8.337,"[Kr] 4d10","William Hyde Wollaston (1803)","Platinum-group metal capable of absorbing up to 900 times its own volume of hydrogen gas."],
+  [47,"Ag","Silver",107.87,"transition",11,5,"d",1234.93,2435,10.49,1.93,165,7.576,"[Kr] 4d10 5s1","Known since antiquity","Possesses the highest electrical conductivity, thermal conductivity, and reflectivity of any metal."],
+  [48,"Cd","Cadmium",112.41,"transition",12,5,"d",594.22,1040,8.65,1.69,161,8.994,"[Kr] 4d10 5s2","Friedrich Stromeyer (1817)","Soft, toxic bluish-white metal historically used in NiCd batteries and vibrant yellow-red pigments."],
+  [49,"In","Indium",114.82,"post",13,5,"p",429.7485,2345,7.31,1.78,156,5.786,"[Kr] 4d10 5s2 5p1","Ferdinand Reich & Hieronymous Richter (1863)","Soft post-transition metal vital for transparent indium tin oxide (ITO) coatings in touchscreens."],
+  [50,"Sn","Tin",118.71,"post",14,5,"p",505.08,2875,7.365,1.96,145,7.344,"[Kr] 4d10 5s2 5p2","Known since antiquity","Malleable metal used since the Bronze Age; today essential in lead-free electronics solder and tinplate."],
+  [51,"Sb","Antimony",121.76,"metalloid",15,5,"p",903.78,1908,6.697,2.05,133,8.608,"[Kr] 4d10 5s2 5p3","Known since antiquity","Lustrous gray metalloid used in flame-retardant materials, lead-acid battery grids, and semiconductors."],
+  [52,"Te","Tellurium",127.60,"metalloid",16,5,"p",722.66,1261,6.24,2.1,123,9.010,"[Kr] 4d10 5s2 5p4","Franz-Joseph Müller von Reichenstein (1782)","Rare brittle metalloid used in cadmium telluride thin-film solar panels and thermoelectric devices."],
+  [53,"I","Iodine",126.90,"nonmetal",17,5,"p",386.85,457.4,4.933,2.66,115,10.451,"[Kr] 4d10 5s2 5p5","Bernard Courtois (1811)","Lustrous dark-purple halogen that sublimates into violet vapor; essential for human thyroid hormones."],
+  [54,"Xe","Xenon",131.29,"noble",18,5,"p",161.40,165.051,0.005894,2.60,108,12.130,"[Kr] 4d10 5s2 5p6","William Ramsay & Morris Travers (1898)","Heavy noble gas used in spacecraft ion thrusters, general anesthesia, and high-intensity flash lamps."],
+  [55,"Cs","Caesium",132.91,"alkali",1,6,"s",301.7,944,1.93,0.79,298,3.894,"[Xe] 6s1","Robert Bunsen & Gustav Kirchhoff (1860)","Gold-tinted alkali metal with the lowest electronegativity; defines the SI second via its atomic hyperfine transition."],
+  [56,"Ba","Barium",137.33,"alkaline",2,6,"s",1000,2118,3.51,0.89,253,5.212,"[Xe] 6s2","Carl Wilhelm Scheele (1772)","Reactive alkaline earth metal whose insoluble sulfate is used as a radiocontrast agent in medical imaging."],
+  [57,"La","Lanthanum",138.91,"lanthanide",3,6,"f",1193,3737,6.162,1.10,195,5.577,"[Xe] 5d1 6s2","Carl Gustaf Mosander (1839)","First element of the lanthanide series; used in camera lenses, hybrid car batteries, and flint lighters."],
+  [58,"Ce","Cerium",140.12,"lanthanide",3,6,"f",1068,3716,6.77,1.12,185,5.539,"[Xe] 4f1 5d1 6s2","Martin Heinrich Klaproth & Berzelius (1803)","Most abundant rare-earth element; widely used in catalytic converters and precision glass polishing."],
+  [59,"Pr","Praseodymium",140.91,"lanthanide",3,6,"f",1208,3403,6.77,1.13,185,5.473,"[Xe] 4f3 6s2","Carl Auer von Welsbach (1885)","Soft lanthanide metal used to create high-strength aircraft magnets and yellow-green didymium safety glass."],
+  [60,"Nd","Neodymium",144.24,"lanthanide",3,6,"f",1297,3347,7.01,1.14,185,5.525,"[Xe] 4f4 6s2","Carl Auer von Welsbach (1885)","Core ingredient in NdFeB permanent magnets—the strongest commercially available magnets in the world."],
+  [61,"Pm","Promethium",145,"lanthanide",3,6,"f",1315,3273,7.26,1.13,185,5.582,"[Xe] 4f5 6s2","Jacob A. Marinsky, Lawrence Glendenin & Charles Coryell (1945)","Only radioactive lanthanide; has no stable isotopes and is used in miniature atomic batteries."],
+  [62,"Sm","Samarium",150.36,"lanthanide",3,6,"f",1345,2173,7.52,1.17,185,5.644,"[Xe] 4f6 6s2","Lecoq de Boisbaudran (1879)","Lanthanide used in samarium-cobalt magnets that retain magnetism at extreme high temperatures."],
+  [63,"Eu","Europium",151.96,"lanthanide",3,6,"f",1099,1802,5.244,1.2,185,5.670,"[Xe] 4f7 6s2","Eugène-Anatole Demarçay (1901)","Most reactive lanthanide; provides vibrant red and blue phosphors in displays and anti-counterfeit euro bills."],
+  [64,"Gd","Gadolinium",157.25,"lanthanide",3,6,"f",1585,3273,7.90,1.20,180,6.150,"[Xe] 4f7 5d1 6s2","Jean Charles Galissard de Marignac (1880)","Strongly paramagnetic lanthanide used as an intravenous contrast agent in MRI scans."],
+  [65,"Tb","Terbium",158.93,"lanthanide",3,6,"f",1629,3396,8.23,1.2,175,5.864,"[Xe] 4f9 6s2","Carl Gustaf Mosander (1843)","Silvery rare-earth metal used in green solid-state phosphors and magnetostrictive Terfenol-D alloys."],
+  [66,"Dy","Dysprosium",162.50,"lanthanide",3,6,"f",1680,2840,8.54,1.22,175,5.939,"[Xe] 4f10 6s2","Lecoq de Boisbaudran (1886)","Added to neodymium magnets to prevent demagnetization in high-heat electric vehicle motors."],
+  [67,"Ho","Holmium",164.93,"lanthanide",3,6,"f",1734,2873,8.79,1.23,175,6.022,"[Xe] 4f11 6s2","Marc Delafontaine & Jacques-Louis Soret (1878)","Possesses the highest magnetic permeability of any pure element; used in medical surgical lasers."],
+  [68,"Er","Erbium",167.26,"lanthanide",3,6,"f",1802,3141,9.066,1.24,175,6.108,"[Xe] 4f12 6s2","Carl Gustaf Mosander (1843)","Essential dopant in erbium-doped fiber amplifiers (EDFAs) that boost global internet optical signals."],
+  [69,"Tm","Thulium",168.93,"lanthanide",3,6,"f",1818,2223,9.32,1.25,175,6.184,"[Xe] 4f13 6s2","Per Teodor Cleve (1879)","Second least abundant lanthanide; used in portable X-ray machines and high-efficiency fiber lasers."],
+  [70,"Yb","Ytterbium",173.05,"lanthanide",3,6,"f",1097,1469,6.90,1.1,175,6.254,"[Xe] 4f14 6s2","Jean Charles Galissard de Marignac (1878)","Soft lanthanide used in ultra-precise optical lattice atomic clocks and industrial fiber lasers."],
+  [71,"Lu","Lutetium",174.97,"lanthanide",3,6,"d",1925,3675,9.841,1.27,175,5.426,"[Xe] 4f14 5d1 6s2","Georges Urbain & Carl Auer von Welsbach (1907)","Densest and hardest lanthanide; used in PET scan detectors and targeted cancer radiotherapies."],
+  [72,"Hf","Hafnium",178.49,"transition",4,6,"d",2506,4876,13.31,1.3,155,6.825,"[Xe] 4f14 5d2 6s2","Dirk Coster & George de Hevesy (1923)","Strong neutron absorber used in nuclear control rods and high-k dielectric gates in modern microchips."],
+  [73,"Ta","Tantalum",180.95,"transition",5,6,"d",3290,5731,16.69,1.5,145,7.550,"[Xe] 4f14 5d3 6s2","Anders Gustaf Ekeberg (1802)","Biocompatible, corrosion-immune refractory metal used in miniature capacitors and surgical implants."],
+  [74,"W","Tungsten",183.84,"transition",6,6,"d",3695,6203,19.25,2.36,135,7.864,"[Xe] 4f14 5d4 6s2","Juan José & Fausto Elhuyar (1783)","Highest melting point of all pure metals (3695 K); used in incandescent filaments, TIG electrodes, and armor."],
+  [75,"Re","Rhenium",186.21,"transition",7,6,"d",3459,5869,21.02,1.9,135,7.834,"[Xe] 4f14 5d5 6s2","Walter Noddack, Ida Tacke & Otto Berg (1925)","One of the rarest and densest elements; added to nickel superalloys for jet engine turbine blades."],
+  [76,"Os","Osmium",190.23,"transition",8,6,"d",3306,5285,22.59,2.2,130,8.438,"[Xe] 4f14 5d6 6s2","Smithson Tennant (1803)","Densest naturally occurring element (22.59 g/cm³); hard bluish-white platinum-group metal."],
+  [77,"Ir","Iridium",192.22,"transition",9,6,"d",2719,4403,22.56,2.20,135,8.967,"[Xe] 4f14 5d7 6s2","Smithson Tennant (1803)","Most corrosion-resistant metal known; an iridium-rich clay layer marks the Cretaceous–Paleogene asteroid impact."],
+  [78,"Pt","Platinum",195.08,"transition",10,6,"d",2041.4,4098,21.45,2.28,135,8.959,"[Xe] 4f14 5d9 6s1","Antonio de Ulloa (1735)","Noble metal prized in catalytic converters, hydrogen fuel cells, chemotherapy drugs, and fine jewelry."],
+  [79,"Au","Gold",196.97,"transition",11,6,"d",1337.33,3243,19.30,2.54,135,9.226,"[Xe] 4f14 5d10 6s1","Known since antiquity","Malleable, untarnishing noble metal used in microelectronics connectors, space shielding, and monetary reserves."],
+  [80,"Hg","Mercury",200.59,"transition",12,6,"d",234.3210,629.88,13.534,2.00,150,10.438,"[Xe] 4f14 5d10 6s2","Known since antiquity","Only metal that is liquid at standard room temperature and pressure; toxic heavy element."],
+  [81,"Tl","Thallium",204.38,"post",13,6,"p",577,1746,11.85,1.62,190,6.108,"[Xe] 4f14 5d10 6s2 6p1","William Crookes (1861)","Soft, highly toxic post-transition metal once used in rodenticides and now in specialized infrared optics."],
+  [82,"Pb","Lead",207.2,"post",14,6,"p",600.61,2022,11.34,1.87,180,7.417,"[Xe] 4f14 5d10 6s2 6p2","Known since antiquity","Dense, malleable metal used in radiation shielding and lead-acid automotive batteries; neurotoxic."],
+  [83,"Bi","Bismuth",208.98,"post",15,6,"p",544.7,1837,9.78,2.02,160,7.286,"[Xe] 4f14 5d10 6s2 6p3","Claude François Geoffroy (1753)","Brittle metal with iridescent oxide crystals; expands upon freezing and is virtually non-toxic for a heavy metal."],
+  [84,"Po","Polonium",209,"post",16,6,"p",527,1235,9.196,2.0,190,8.417,"[Xe] 4f14 5d10 6s2 6p4","Marie & Pierre Curie (1898)","Intensely radioactive alpha-emitting metalloid/post-transition metal discovered in pitchblende ore."],
+  [85,"At","Astatine",210,"metalloid",17,6,"p",575,610,7,2.2,null,9.318,"[Xe] 4f14 5d10 6s2 6p5","Dale R. Corson, Kenneth Ross MacKenzie & Emilio Segrè (1940)","Rarest naturally occurring element in Earth's crust; studied for targeted alpha-particle cancer therapy."],
+  [86,"Rn","Radon",222,"noble",18,6,"p",202,211.5,0.00973,2.2,120,10.749,"[Xe] 4f14 5d10 6s2 6p6","Friedrich Ernst Dorn (1900)","Colorless, radioactive noble gas produced by the decay of radium in soil and rock."],
+  [87,"Fr","Francium",223,"alkali",1,7,"s",300,950,2.48,0.79,null,4.073,"[Rn] 7s1","Marguerite Perey (1939)","Second rarest natural element; extremely radioactive alkali metal with a maximum half-life of 22 minutes."],
+  [88,"Ra","Radium",226,"alkaline",2,7,"s",973,2010,5.5,0.9,215,5.278,"[Rn] 7s2","Marie & Pierre Curie (1898)","Luminescent radioactive alkaline earth metal whose discovery revolutionized physics and medicine."],
+  [89,"Ac","Actinium",227,"actinide",3,7,"f",1500,3500,10,1.1,195,5.170,"[Rn] 6d1 7s2","Friedrich Oskar Giesel (1902)","Radioactive silvery metal that glows pale blue in the dark; namesake of the actinide series."],
+  [90,"Th","Thorium",232.04,"actinide",3,7,"f",2023,5061,11.7,1.3,180,6.307,"[Rn] 6d2 7s2","Jöns Jacob Berzelius (1829)","Weakly radioactive actinide more abundant than uranium; investigated as a fertile nuclear fuel."],
+  [91,"Pa","Protactinium",231.04,"actinide",3,7,"f",1841,4300,15.37,1.5,180,5.890,"[Rn] 5f2 6d1 7s2","Kasimir Fajans & Oswald Helmuth Göhring (1913)","Dense, radioactive actinide occurring in trace quantities in uranium ores."],
+  [92,"U","Uranium",238.03,"actinide",3,7,"f",1405.3,4404,19.1,1.38,175,6.194,"[Rn] 5f3 6d1 7s2","Martin Heinrich Klaproth (1789)","Heaviest naturally abundant primordial element; U-235 sustains nuclear fission chain reactions."],
+  [93,"Np","Neptunium",237,"actinide",3,7,"f",912,4447,20.45,1.36,175,6.266,"[Rn] 5f4 6d1 7s2","Edwin McMillan & Philip Abelson (1940)","First synthetic transuranium element discovered; produced as a byproduct in nuclear reactors."],
+  [94,"Pu","Plutonium",244,"actinide",3,7,"f",912.5,3505,19.85,1.28,175,6.026,"[Rn] 5f6 7s2","Glenn T. Seaborg et al. (1940)","Fissile actinide used in nuclear reactors and radioisotope thermoelectric generators powering deep-space probes."],
+  [95,"Am","Americium",243,"actinide",3,7,"f",1449,2880,12,1.13,175,5.974,"[Rn] 5f7 7s2","Glenn T. Seaborg et al. (1944)","Synthetic transuranium element widely used in minute quantities inside household ionization smoke detectors."],
+  [96,"Cm","Curium",247,"actinide",3,7,"f",1613,3383,13.51,1.28,null,5.991,"[Rn] 5f7 6d1 7s2","Glenn T. Seaborg, Ralph A. James & Albert Ghiorso (1944)","Hard, silvery radioactive actinide named after Marie and Pierre Curie; used in alpha-particle X-ray spectrometers on Mars rovers."],
+  [97,"Bk","Berkelium",247,"actinide",3,7,"f",1259,2900,14.78,1.3,null,6.198,"[Rn] 5f9 7s2","Stanley G. Thompson, Albert Ghiorso & Glenn T. Seaborg (1949)","Synthetic actinide named after Berkeley, California; used as a target to synthesize heavier superheavy elements."],
+  [98,"Cf","Californium",251,"actinide",3,7,"f",1173,1743,15.1,1.3,null,6.282,"[Rn] 5f10 7s2","Stanley G. Thompson et al. (1950)","Strong neutron emitter used to start up nuclear reactors, detect gold/silver ores, and treat certain cancers."],
+  [99,"Es","Einsteinium",252,"actinide",3,7,"f",1133,1269,8.84,1.3,null,6.420,"[Rn] 5f11 7s2","Albert Ghiorso et al. (1952)","First discovered in the debris of the 1952 Ivy Mike thermonuclear test; heaviest element produced in macroscopic quantities."],
+  [100,"Fm","Fermium",257,"actinide",3,7,"f",1800,null,9.7,1.3,null,6.500,"[Rn] 5f12 7s2","Albert Ghiorso et al. (1952)","Named after Enrico Fermi; heaviest element that can be formed by neutron bombardment of lighter elements."],
+  [101,"Md","Mendelevium",258,"actinide",3,7,"f",1100,null,10.3,1.3,null,6.580,"[Rn] 5f13 7s2","Albert Ghiorso et al. (1955)","First element synthesized one atom at a time; named in honor of Dmitri Mendeleev."],
+  [102,"No","Nobelium",259,"actinide",3,7,"f",1100,null,9.9,1.3,null,6.650,"[Rn] 5f14 7s2","Joint Institute for Nuclear Research (1966)","Synthetic divalent actinide named after Alfred Nobel; exhibits unusual stability in the +2 oxidation state."],
+  [103,"Lr","Lawrencium",266,"actinide",3,7,"d",1900,null,14.4,1.3,null,4.900,"[Rn] 5f14 7s2 7p1","Albert Ghiorso et al. (1961)","Final member of the actinide series; named after cyclotron inventor Ernest Lawrence."],
+  [104,"Rf","Rutherfordium",267,"transition",4,7,"d",2400,5800,23.2,null,null,6.000,"[Rn] 5f14 6d2 7s2","JINR & Lawrence Berkeley National Lab (1964/1969)","First transactinide superheavy element; its chemistry mirrors that of hafnium."],
+  [105,"Db","Dubnium",268,"transition",5,7,"d",null,null,29.3,null,null,null,"[Rn] 5f14 6d3 7s2","JINR & Lawrence Berkeley National Lab (1968/1970)","Synthetic Group 5 transition metal named after the Russian nuclear research town of Dubna."],
+  [106,"Sg","Seaborgium",269,"transition",6,7,"d",null,null,35.0,null,null,null,"[Rn] 5f14 6d4 7s2","Lawrence Berkeley National Lab (1974)","First element named after a living person (Glenn T. Seaborg); behaves chemically like tungsten."],
+  [107,"Bh","Bohrium",270,"transition",7,7,"d",null,null,37.1,null,null,null,"[Rn] 5f14 6d5 7s2","GSI Helmholtz Centre, Darmstadt (1981)","Synthetic Group 7 element named after Danish physicist Niels Bohr."],
+  [108,"Hs","Hassium",277,"transition",8,7,"d",null,null,40.7,null,null,null,"[Rn] 5f14 6d6 7s2","GSI Helmholtz Centre, Darmstadt (1984)","Predicted to be the densest element (~40.7 g/cm³); forms volatile tetroxides similar to osmium."],
+  [109,"Mt","Meitnerium",278,"unknown",9,7,"d",null,null,37.4,null,null,null,"[Rn] 5f14 6d7 7s2","GSI Helmholtz Centre, Darmstadt (1982)","Extremely radioactive synthetic element named in honor of physicist Lise Meitner."],
+  [110,"Ds","Darmstadtium",281,"unknown",10,7,"d",null,null,34.8,null,null,null,"[Rn] 5f14 6d8 7s2","GSI Helmholtz Centre, Darmstadt (1994)","Synthetic Group 10 element named after Darmstadt, Germany, where it was created."],
+  [111,"Rg","Roentgenium",282,"unknown",11,7,"d",null,null,28.7,null,null,null,"[Rn] 5f14 6d9 7s2","GSI Helmholtz Centre, Darmstadt (1994)","Synthetic Group 11 element named after X-ray discoverer Wilhelm Conrad Röntgen."],
+  [112,"Cn","Copernicium",285,"unknown",12,7,"d",283,340,14.0,null,null,null,"[Rn] 5f14 6d10 7s2","GSI Helmholtz Centre, Darmstadt (1996)","Relativistic effects make this Group 12 superheavy element behave like a volatile noble liquid or gas."],
+  [113,"Nh","Nihonium",286,"unknown",13,7,"p",700,1430,16,null,null,null,"[Rn] 5f14 6d10 7s2 7p1","RIKEN, Japan (2004)","First element discovered in Asia; named after Nihon, the Japanese name for Japan."],
+  [114,"Fl","Flerovium",289,"unknown",14,7,"p",284,380,11.4,null,null,null,"[Rn] 5f14 6d10 7s2 7p2","JINR & Lawrence Livermore National Lab (1999)","Superheavy Group 14 element exhibiting closed-shell relativistic stability akin to a noble gas."],
+  [115,"Mc","Moscovium",290,"unknown",15,7,"p",670,1400,13.5,null,null,null,"[Rn] 5f14 6d10 7s2 7p3","JINR & Lawrence Livermore National Lab (2003)","Synthetic Group 15 element named after the Moscow Oblast region."],
+  [116,"Lv","Livermorium",293,"unknown",16,7,"p",709,1085,12.9,null,null,null,"[Rn] 5f14 6d10 7s2 7p4","JINR & Lawrence Livermore National Lab (2000)","Synthetic Group 16 superheavy element named after Lawrence Livermore National Laboratory."],
+  [117,"Ts","Tennessine",294,"unknown",17,7,"p",723,883,7.17,null,null,null,"[Rn] 5f14 6d10 7s2 7p5","JINR, ORNL & Vanderbilt University (2010)","Second-heaviest known element; named in recognition of Tennessee's contributions to superheavy research."],
+  [118,"Og","Oganesson",294,"unknown",18,7,"p",325,450,7.2,null,null,null,"[Rn] 5f14 6d10 7s2 7p6","JINR & Lawrence Livermore National Lab (2002)","Heaviest element on the periodic table; relativistic effects likely make it a reactive solid rather than an inert gas."]
+];
+
+const CATEGORIES = {
+  alkali:     { label: "Alkali Metals",          color: "#ff4757" },
+  alkaline:   { label: "Alkaline Earth Metals",  color: "#ff7f50" },
+  transition: { label: "Transition Metals",      color: "#ffbe0b" },
+  post:       { label: "Post-Transition Metals", color: "#2ed573" },
+  metalloid:  { label: "Metalloids",             color: "#00d2d3" },
+  nonmetal:   { label: "Reactive Nonmetals",     color: "#3b82f6" },
+  noble:      { label: "Noble Gases",            color: "#a855f7" },
+  lanthanide: { label: "Lanthanides",            color: "#ff6b81" },
+  actinide:   { label: "Actinides",              color: "#f43f5e" },
+  unknown:    { label: "Unknown Properties",     color: "#64748b" }
+};
+
+const BLOCK_COLORS = {
+  s: "#ff4757",
+  p: "#3b82f6",
+  d: "#ffbe0b",
+  f: "#ff6b81"
+};
+
+const COSMIC_ORIGINS = {
+  bigbang:   { label: "Big Bang Fusion",        color: "#38bdf8" },
+  lowmass:   { label: "Dying Low-Mass Stars",   color: "#facc15" },
+  massive:   { label: "Exploding Massive Stars",color: "#22c55e" },
+  neutron:   { label: "Neutron Star Mergers",   color: "#a855f7" },
+  cosmicray: { label: "Cosmic Ray Fission",     color: "#f97316" },
+  human:     { label: "Human Synthesis",        color: "#64748b" }
+};
+
+// Cosmic origin mapping by atomic number Z
+function getCosmicOrigin(z) {
+  if (z === 1 || z === 2) return "bigbang";
+  if (z === 3 || z === 4 || z === 5) return "cosmicray";
+  if ([6, 7, 38, 39, 40, 56, 57, 58, 59, 60, 82].includes(z)) return "lowmass";
+  if ((z >= 8 && z <= 37) || (z >= 41 && z <= 42)) return "massive";
+  if (z === 43 || z === 61 || z >= 93) return "human";
+  return "neutron";
+}
+
+// Human Body mass fraction (%) and Earth Crust mass fraction (%) for major & trace elements
+const BODY_COMPOSITION = {
+  8: 65.0, 6: 18.5, 1: 9.5, 7: 3.2, 20: 1.5, 15: 1.0, 19: 0.4, 16: 0.3,
+  11: 0.2, 17: 0.2, 12: 0.1, 26: 0.006, 9: 0.0037, 30: 0.0032, 14: 0.002,
+  29: 0.0001, 53: 0.00002, 34: 0.00002, 25: 0.00002, 42: 0.00001, 27: 0.000002
+};
+
+const CRUST_COMPOSITION = {
+  8: 46.1, 14: 28.2, 13: 8.23, 26: 5.63, 20: 4.15, 11: 2.36, 12: 2.33,
+  19: 2.09, 22: 0.565, 1: 0.14, 15: 0.105, 25: 0.095, 9: 0.0585, 56: 0.0425,
+  38: 0.037, 16: 0.035, 6: 0.02, 40: 0.0165, 17: 0.0145, 23: 0.012,
+  24: 0.0102, 37: 0.009, 28: 0.0084, 30: 0.007, 58: 0.00665, 29: 0.006,
+  60: 0.00415, 57: 0.0039, 39: 0.0033, 7: 0.0019, 27: 0.0025, 3: 0.002,
+  41: 0.002, 31: 0.0019, 82: 0.0014, 5: 0.001, 90: 0.00096, 59: 0.00092,
+  62: 0.0007, 64: 0.00062, 66: 0.00052, 68: 0.00035, 70: 0.00032, 72: 0.0003,
+  55: 0.0003, 4: 0.00028, 92: 0.00027, 35: 0.00024, 50: 0.00023, 73: 0.0002,
+  63: 0.0002, 33: 0.00018, 32: 0.00015, 74: 0.000125, 42: 0.00012, 67: 0.00013,
+  65: 0.00012, 69: 0.000052, 81: 0.000085, 71: 0.00008, 51: 0.00002, 53: 0.000045
+};
+
+// Authentic flame-test colors & visible emission spectral lines (nm)
+const FLAME_DATA = {
+  1:  { name: "Pale Violet", color: "#c084fc", lines: [410, 434, 486, 656] },
+  2:  { name: "Peach-Orange", color: "#fdba74", lines: [447, 501, 587, 667] },
+  3:  { name: "Crimson Red", color: "#ff2a55", lines: [460, 497, 610, 670] },
+  5:  { name: "Bright Green", color: "#22c55e", lines: [492, 518, 548] },
+  10: { name: "Red-Orange", color: "#ff5500", lines: [540, 585, 603, 614, 640, 650] },
+  11: { name: "Golden Yellow", color: "#facc15", lines: [589, 589.6] },
+  12: { name: "Brilliant White", color: "#f8fafc", lines: [435, 470, 517, 518, 552] },
+  15: { name: "Pale Bluish-Green", color: "#5eead4", lines: [460, 525, 542, 604] },
+  16: { name: "Electric Blue", color: "#38bdf8", lines: [415, 481, 545, 564] },
+  18: { name: "Violet-Blue", color: "#818cf8", lines: [415, 420, 451, 470, 696] },
+  19: { name: "Lilac Violet", color: "#d8b4fe", lines: [404, 405, 580, 693] },
+  20: { name: "Brick Red-Orange", color: "#fb923c", lines: [422, 559, 616, 643] },
+  26: { name: "Gold Sparks", color: "#fbbf24", lines: [438, 495, 527, 532, 613] },
+  29: { name: "Emerald Green-Blue", color: "#10b981", lines: [465, 510, 515, 521, 578] },
+  30: { name: "Bluish-Green", color: "#2dd4bf", lines: [468, 472, 481, 636] },
+  33: { name: "Blue", color: "#60a5fa", lines: [449, 488, 549, 617] },
+  34: { name: "Azure Blue", color: "#3b82f6", lines: [473, 484, 517, 522] },
+  36: { name: "Pale Lavender", color: "#e9d5ff", lines: [431, 450, 557, 587] },
+  37: { name: "Red-Violet", color: "#e879f9", lines: [420, 421, 629, 630] },
+  38: { name: "Scarlet Crimson", color: "#ef4444", lines: [407, 421, 460, 606, 640, 650] },
+  49: { name: "Indigo Blue", color: "#6366f1", lines: [410, 451] },
+  51: { name: "Pale Green", color: "#86efac", lines: [435, 549, 556, 600] },
+  52: { name: "Pale Green", color: "#6ee7b7", lines: [486, 515, 564] },
+  54: { name: "Blue-Lavender", color: "#93c5fd", lines: [450, 467, 484, 529, 688] },
+  55: { name: "Blue-Violet", color: "#a855f7", lines: [455, 459, 601, 621] },
+  56: { name: "Apple Green", color: "#84cc16", lines: [455, 493, 553, 585, 614] },
+  79: { name: "Soft Gold", color: "#fde047", lines: [479, 583, 627] },
+  80: { name: "Blue-White UV", color: "#7dd3fc", lines: [404, 435, 546, 577, 579] },
+  81: { name: "Pure Emerald", color: "#22c55e", lines: [535] },
+  82: { name: "Blue-White", color: "#bae6fd", lines: [405, 500, 560, 660] },
+  88: { name: "Carmine Red", color: "#f43f5e", lines: [434, 468, 482, 644] }
+};
+
+function getElementFlameData(el) {
+  if (FLAME_DATA[el.z]) return FLAME_DATA[el.z];
+  // Deterministic spectral signature derived from atomic number for remaining elements
+  const base1 = 415 + ((el.z * 37) % 95);
+  const base2 = 510 + ((el.z * 53) % 85);
+  const base3 = 595 + ((el.z * 29) % 95);
+  const catFlame = {
+    alkali: { name: "Violet-Crimson", color: "#e879f9" },
+    alkaline: { name: "Orange-Red", color: "#fb923c" },
+    transition: { name: "Sparkling Gold-Green", color: "#34d399" },
+    post: { name: "Pale Blue-White", color: "#93c5fd" },
+    metalloid: { name: "Cyan-Blue", color: "#38bdf8" },
+    nonmetal: { name: "Violet-Blue", color: "#818cf8" },
+    noble: { name: "Neon Plasma Glow", color: "#c084fc" },
+    lanthanide: { name: "Bright White-Green", color: "#a7f3d0" },
+    actinide: { name: "Cherenkov Blue", color: "#38bdf8" },
+    unknown: { name: "Plasma White", color: "#e2e8f0" }
+  };
+  return { ...catFlame[el.category], lines: [base1, base2, base3] };
+}
+
+function wavelengthToColor(nm) {
+  if (nm < 440) return "#8b5cf6";
+  if (nm < 485) return "#3b82f6";
+  if (nm < 510) return "#06b6d4";
+  if (nm < 565) return "#22c55e";
+  if (nm < 590) return "#eab308";
+  if (nm < 625) return "#f97316";
+  return "#ef4444";
+}
+
+const SHELL_NAMES = ["K (n=1)", "L (n=2)", "M (n=3)", "N (n=4)", "O (n=5)", "P (n=6)", "Q (n=7)"];
+
+const ELEMENTS = RAW_ELEMENTS.map(e => ({
+  z: e[0],
+  symbol: e[1],
+  name: e[2],
+  mass: e[3],
+  category: e[4],
+  group: e[5],
+  period: e[6],
+  block: e[7],
+  melt: e[8],
+  boil: e[9],
+  density: e[10],
+  en: e[11],
+  radius: e[12],
+  ie: e[13],
+  config: e[14],
+  discovery: e[15],
+  summary: e[16],
+  shells: computeShells(e[0], e[14]),
+  cosmic: getCosmicOrigin(e[0]),
+  bodyPct: BODY_COMPOSITION[e[0]] || 0,
+  crustPct: CRUST_COMPOSITION[e[0]] || 0,
+  defaultNeutrons: Math.max(0, Math.round(e[3]) - e[0])
+}));
+
+function computeShells(z, configStr) {
+  const NOBLES = {
+    He: [2],
+    Ne: [2, 8],
+    Ar: [2, 8, 8],
+    Kr: [2, 8, 18, 8],
+    Xe: [2, 8, 18, 18, 8],
+    Rn: [2, 8, 18, 32, 18, 8]
+  };
+  const shells = [0, 0, 0, 0, 0, 0, 0];
+  const coreMatch = configStr.match(/^\[(He|Ne|Ar|Kr|Xe|Rn)\]/);
+  if (coreMatch) {
+    NOBLES[coreMatch[1]].forEach((cnt, idx) => { shells[idx] = cnt; });
+  }
+  const rest = configStr.replace(/^\[[A-Za-z]+\]\s*/, "");
+  const parts = rest.split(/\s+/).filter(Boolean);
+  for (const p of parts) {
+    const m = p.match(/^(\d)[spdfg](\d+)$/);
+    if (m) {
+      const n = parseInt(m[1], 10) - 1;
+      const cnt = parseInt(m[2], 10);
+      shells[n] += cnt;
+    }
+  }
+  while (shells.length > 1 && shells[shells.length - 1] === 0) {
+    shells.pop();
+  }
+  return shells;
+}
+
+// Sound Effects Engine via Tone.js (zero external audio URLs)
+let synth = null;
+function playElementNote(z, duration = "16n") {
+  if (!state.soundEnabled || typeof Tone === "undefined") return;
+  try {
+    if (Tone.context.state !== "running") {
+      Tone.start();
+    }
+    if (!synth) {
+      synth = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.01, decay: 0.18, sustain: 0.05, release: 0.35 }
+      }).toDestination();
+      synth.volume.value = -14;
+    }
+    // Map atomic number onto a pleasant pentatonic scale across octaves
+    const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00];
+    const freq = pentatonic[z % pentatonic.length] * (1 + ((z % 3) * 0.25));
+    synth.triggerAttackRelease(freq, duration);
+  } catch (err) {
+    // Graceful fallback if audio context blocked
+  }
+}
+
+// Application State
+const state = {
+  selectedZ: 1,
+  compareZ: null,
+  search: "",
+  activeCategory: null,
+  activeBlock: null,
+  activePhaseFilter: null,
+  colorMode: "category",
+  tempK: 298,
+  tempUnit: "K",
+  bohrPaused: false,
+  orbitSpeedMultiplier: 1,
+  highlightedShell: null,
+  bohrFocus: false,
+  soundEnabled: true,
+  tilt3d: false,
+  orbitalCloud3D: false,
+  customNeutrons: 0,
+  labAtoms: [1, 1, 8], // Preloaded with H2O so users immediately see live covalent bonding!
+  lab3DMode: false,
+  labRotX: 0.35,
+  labRotY: 0.45,
+  labAnimFrame: null
+};
+
+const tileMap = new Map();
+const gridCoords = new Map();
+
+function getGridPosition(el) {
+  if (el.z >= 57 && el.z <= 71) {
+    return { row: 10, col: (el.z - 57) + 4 };
+  }
+  if (el.z >= 89 && el.z <= 103) {
+    return { row: 11, col: (el.z - 89) + 4 };
+  }
+  return { row: el.period + 1, col: el.group + 1 };
+}
+
+function getPhaseAtTemp(el, tempK) {
+  if (el.melt === null && el.boil === null) return "unknown";
+  if (el.boil !== null && tempK >= el.boil) return "gas";
+  if (el.melt !== null && tempK >= el.melt) return "liquid";
+  if (el.melt !== null && tempK < el.melt) return "solid";
+  if (el.boil !== null && tempK < el.boil) return "solid";
+  return "unknown";
+}
+
+function formatTemp(kelvin, unit = state.tempUnit) {
+  if (kelvin === null || kelvin === undefined) return "Unknown";
+  if (unit === "C") return `${(kelvin - 273.15).toFixed(1)} °C`;
+  if (unit === "F") return `${((kelvin - 273.15) * 9 / 5 + 32).toFixed(1)} °F`;
+  return `${Math.round(kelvin)} K`;
+}
+
+function getTrendRange(prop) {
+  const vals = ELEMENTS.map(e => e[prop]).filter(v => typeof v === "number" && !isNaN(v));
+  return { min: Math.min(...vals), max: Math.max(...vals) };
+}
+
+function interpolateHeatColor(t) {
+  const stops = [
+    [30, 41, 59],
+    [2, 132, 199],
+    [56, 189, 248],
+    [250, 204, 21],
+    [239, 68, 68]
+  ];
+  const scaled = Math.max(0, Math.min(1, t)) * (stops.length - 1);
+  const idx = Math.floor(scaled);
+  const frac = scaled - idx;
+  const c1 = stops[idx];
+  const c2 = stops[Math.min(stops.length - 1, idx + 1)];
+  const r = Math.round(c1[0] + (c2[0] - c1[0]) * frac);
+  const g = Math.round(c1[1] + (c2[1] - c1[1]) * frac);
+  const b = Math.round(c1[2] + (c2[2] - c1[2]) * frac);
+  return `rgba(${r}, ${g}, ${b}, 0.56)`;
+}
+
+/**
+ * Generates a crisp, lightweight SVG Bohr model for every single one of the 118 tiles
+ */
+function buildMiniBohrSVG(el) {
+  const cx = 32, cy = 32;
+  const numShells = el.shells.length;
+  const maxR = 28;
+  const minR = 8;
+  const step = numShells > 1 ? (maxR - minR) / (numShells - 1) : 0;
+  const catColor = CATEGORIES[el.category].color;
+
+  let svg = `<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="3.2" fill="${catColor}" opacity="0.85" />`;
+
+  el.shells.forEach((eCount, idx) => {
+    const r = minR + idx * step;
+    svg += `<g class="mini-orbit">`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="0.7" />`;
+
+    // Render all electrons on outer/valence shells and sampled crisp dots on dense inner shells for visual clarity
+    const renderDots = Math.min(eCount, idx === numShells - 1 ? 18 : 12);
+    for (let i = 0; i < renderDots; i++) {
+      const angle = (2 * Math.PI * i) / renderDots - Math.PI / 2;
+      const ex = cx + r * Math.cos(angle);
+      const ey = cy + r * Math.sin(angle);
+      const isValence = idx === numShells - 1;
+      svg += `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="${isValence ? 1.55 : 1.15}" fill="${isValence ? '#7dd3fc' : '#e2e8f0'}" />`;
+    }
+    svg += `</g>`;
+  });
+
+  svg += `</svg>`;
+  return svg;
+}
+
+/**
+ * Creates a burst of glowing particles when clicking an element
+ */
+function spawnSparkles(x, y, color) {
+  const count = 12;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement("div");
+    p.className = "spark-particle";
+    const size = 4 + Math.random() * 5;
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+    const dist = 28 + Math.random() * 44;
+    p.style.width = `${size}px`;
+    p.style.height = `${size}px`;
+    p.style.left = `${x - size / 2}px`;
+    p.style.top = `${y - size / 2}px`;
+    p.style.background = i % 2 === 0 ? color : "#38bdf8";
+    p.style.boxShadow = `0 0 8px ${color}`;
+    p.style.setProperty("--dx", `${Math.cos(angle) * dist}px`);
+    p.style.setProperty("--dy", `${Math.sin(angle) * dist}px`);
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 660);
+  }
+}
+
+/**
+ * Triggers a playful spring wave across the periodic table from an origin coordinate
+ */
+function triggerWaveBounce(originRow = 5, originCol = 10) {
+  playElementNote(originRow * 3 + originCol, "8n");
+  ELEMENTS.forEach(el => {
+    const pos = getGridPosition(el);
+    const tile = tileMap.get(el.z);
+    const dist = Math.hypot(pos.row - originRow, pos.col - originCol);
+    setTimeout(() => {
+      tile.classList.remove("wave-bounce");
+      void tile.offsetWidth;
+      tile.classList.add("wave-bounce");
+    }, dist * 26);
+  });
+}
+
+function buildFilterChips() {
+  const bar = document.getElementById("filterBar");
+  bar.innerHTML = "";
+
+  Object.entries(CATEGORIES).forEach(([key, info]) => {
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.dataset.cat = key;
+    chip.innerHTML = `<span class="dot" style="background:${info.color};color:${info.color}"></span>${info.label}`;
+    chip.addEventListener("click", () => {
+      state.activeCategory = state.activeCategory === key ? null : key;
+      playElementNote(Object.keys(CATEGORIES).indexOf(key) * 2 + 1);
+      updateFilterChips();
+      renderTiles();
+    });
+    bar.appendChild(chip);
+  });
+
+  const sep = document.createElement("span");
+  sep.style.cssText = "width:1px;height:18px;background:var(--border);margin:0 3px;";
+  bar.appendChild(sep);
+
+  ["s", "p", "d", "f"].forEach((blk, idx) => {
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.dataset.blk = blk;
+    chip.innerHTML = `<span class="dot" style="background:${BLOCK_COLORS[blk]};color:${BLOCK_COLORS[blk]}"></span>${blk}-block`;
+    chip.addEventListener("click", () => {
+      state.activeBlock = state.activeBlock === blk ? null : blk;
+      playElementNote(idx * 3 + 5);
+      updateFilterChips();
+      renderTiles();
+    });
+    bar.appendChild(chip);
+  });
+
+  const sep2 = document.createElement("span");
+  sep2.style.cssText = "width:1px;height:18px;background:var(--border);margin:0 3px;";
+  bar.appendChild(sep2);
+
+  [
+    { id: "solid", label: "Solid" },
+    { id: "liquid", label: "Liquid" },
+    { id: "gas", label: "Gas" }
+  ].forEach((ph, idx) => {
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.dataset.phase = ph.id;
+    chip.textContent = ph.label;
+    chip.addEventListener("click", () => {
+      state.activePhaseFilter = state.activePhaseFilter === ph.id ? null : ph.id;
+      playElementNote(idx * 4 + 2);
+      updateFilterChips();
+      renderTiles();
+    });
+    bar.appendChild(chip);
+  });
+}
+
+function updateFilterChips() {
+  document.querySelectorAll("#filterBar .chip").forEach(chip => {
+    if (chip.dataset.cat) {
+      chip.classList.toggle("active", state.activeCategory === chip.dataset.cat);
+    } else if (chip.dataset.blk) {
+      chip.classList.toggle("active", state.activeBlock === chip.dataset.blk);
+    } else if (chip.dataset.phase) {
+      chip.classList.toggle("active", state.activePhaseFilter === chip.dataset.phase);
+    }
+  });
+}
+
+function buildGrid() {
+  const ptable = document.getElementById("ptable");
+  ptable.innerHTML = "";
+
+  for (let g = 1; g <= 18; g++) {
+    const lbl = document.createElement("div");
+    lbl.className = "axis-label";
+    lbl.style.gridRow = 1;
+    lbl.style.gridColumn = g + 1;
+    lbl.textContent = g;
+    ptable.appendChild(lbl);
+  }
+
+  for (let p = 1; p <= 7; p++) {
+    const lbl = document.createElement("div");
+    lbl.className = "axis-label";
+    lbl.style.gridRow = p + 1;
+    lbl.style.gridColumn = 1;
+    lbl.textContent = p;
+    ptable.appendChild(lbl);
+  }
+
+  const lnMarker = document.createElement("div");
+  lnMarker.className = "series-marker";
+  lnMarker.style.gridRow = 7;
+  lnMarker.style.gridColumn = 4;
+  lnMarker.innerHTML = "<strong>57–71</strong><span>Ln</span>";
+  ptable.appendChild(lnMarker);
+
+  const anMarker = document.createElement("div");
+  anMarker.className = "series-marker";
+  anMarker.style.gridRow = 8;
+  anMarker.style.gridColumn = 4;
+  anMarker.innerHTML = "<strong>89–103</strong><span>An</span>";
+  ptable.appendChild(anMarker);
+
+  const lnRowLbl = document.createElement("div");
+  lnRowLbl.className = "axis-label";
+  lnRowLbl.style.gridRow = 10;
+  lnRowLbl.style.gridColumn = "2 / 4";
+  lnRowLbl.textContent = "Lanthanides";
+  ptable.appendChild(lnRowLbl);
+
+  const anRowLbl = document.createElement("div");
+  anRowLbl.className = "axis-label";
+  anRowLbl.style.gridRow = 11;
+  anRowLbl.style.gridColumn = "2 / 4";
+  anRowLbl.textContent = "Actinides";
+  ptable.appendChild(anRowLbl);
+
+  ELEMENTS.forEach(el => {
+    const pos = getGridPosition(el);
+    gridCoords.set(`${pos.row},${pos.col}`, el.z);
+
+    const tile = document.createElement("div");
+    tile.className = `el-tile cat-${el.category}`;
+    tile.style.gridRow = pos.row;
+    tile.style.gridColumn = pos.col;
+    // Staggered spring entrance animation
+    tile.style.animationDelay = `${(pos.row + pos.col) * 18}ms`;
+    tile.tabIndex = 0;
+    tile.setAttribute("role", "gridcell");
+    tile.setAttribute("draggable", "true");
+    tile.dataset.z = el.z;
+
+    tile.innerHTML = `
+      <div class="mini-bohr-wrap">${buildMiniBohrSVG(el)}</div>
+      <div class="tile-top">
+        <span class="atomic-num">${el.z}</span>
+        <span class="phase-tag">S</span>
+      </div>
+      <div class="symbol">${el.symbol}</div>
+      <div class="tile-bottom">
+        <div class="el-name">${el.name}</div>
+        <div class="el-sub">${el.shells.join("-")}</div>
+      </div>
+    `;
+
+    tile.addEventListener("click", ev => {
+      tile.classList.remove("jelly-click");
+      void tile.offsetWidth;
+      tile.classList.add("jelly-click");
+      spawnSparkles(ev.clientX, ev.clientY, CATEGORIES[el.category].color);
+      playElementNote(el.z);
+      state.highlightedShell = null;
+      selectElement(el.z, true);
+    });
+
+    tile.addEventListener("dragstart", ev => {
+      ev.dataTransfer.setData("text/plain", String(el.z));
+    });
+
+    tile.addEventListener("keydown", e => handleTileKeydown(e, pos));
+
+    ptable.appendChild(tile);
+    tileMap.set(el.z, tile);
+  });
+}
+
+function renderTiles() {
+  const q = state.search.trim().toLowerCase();
+  const trendScale = document.getElementById("trendScale");
+  const trendMin = document.getElementById("trendMin");
+  const trendMax = document.getElementById("trendMax");
+  const legendBadges = document.getElementById("legendBadges");
+
+  if (state.colorMode === "cosmic") {
+    legendBadges.innerHTML = Object.values(COSMIC_ORIGINS).map(o =>
+      `<span class="cosmic-pill" style="background:${o.color}33;border-color:${o.color}"><span class="dot" style="background:${o.color}"></span>${o.label}</span>`
+    ).join("");
+  } else {
+    legendBadges.innerHTML = `
+      <span><strong class="state-pill state-solid">S</strong> Solid</span>
+      <span><strong class="state-pill state-liquid">L</strong> Liquid</span>
+      <span><strong class="state-pill state-gas">G</strong> Gas</span>
+      <span><strong class="state-pill state-unknown">?</strong> Unknown</span>
+      <span>• Drag any tile into the <strong>Bond Lab</strong> below or click <strong>+ Lab</strong></span>
+    `;
+  }
+
+  const trendProps = {
+    electronegativity: { key: "en", unit: "" },
+    radius: { key: "radius", unit: " pm" },
+    ionization: { key: "ie", unit: " eV" },
+    density: { key: "density", unit: " g/cm³" }
+  };
+
+  let range = null;
+  if (trendProps[state.colorMode]) {
+    const propKey = trendProps[state.colorMode].key;
+    range = getTrendRange(propKey);
+    trendScale.classList.add("visible");
+    trendMin.textContent = `${range.min}${trendProps[state.colorMode].unit}`;
+    trendMax.textContent = `${range.max}${trendProps[state.colorMode].unit}`;
+  } else if (state.colorMode === "body" || state.colorMode === "crust") {
+    trendScale.classList.add("visible");
+    trendMin.textContent = "Trace";
+    trendMax.textContent = state.colorMode === "body" ? "65% (O)" : "46.1% (O)";
+  } else {
+    trendScale.classList.remove("visible");
+  }
+
+  ELEMENTS.forEach(el => {
+    const tile = tileMap.get(el.z);
+    const phase = getPhaseAtTemp(el, state.tempK);
+
+    const phaseTag = tile.querySelector(".phase-tag");
+    const phaseMap = {
+      solid:  { code: "S", cls: "state-solid" },
+      liquid: { code: "L", cls: "state-liquid" },
+      gas:    { code: "G", cls: "state-gas" },
+      unknown:{ code: "?", cls: "state-unknown" }
+    };
+    phaseTag.textContent = phaseMap[phase].code;
+    phaseTag.className = `phase-tag ${phaseMap[phase].cls}`;
+
+    const subEl = tile.querySelector(".el-sub");
+    tile.style.background = "";
+    tile.style.borderColor = "";
+    tile.style.transform = "";
+
+    if (state.colorMode === "category") {
+      subEl.textContent = `${el.mass} • [${el.shells.join(",")}]`;
+    } else if (state.colorMode === "cosmic") {
+      const origin = COSMIC_ORIGINS[el.cosmic];
+      subEl.textContent = origin.label.split(" ")[0];
+      tile.style.background = `linear-gradient(145deg, ${origin.color}55, ${origin.color}20)`;
+      tile.style.borderColor = origin.color;
+    } else if (state.colorMode === "body" || state.colorMode === "crust") {
+      const pct = state.colorMode === "body" ? el.bodyPct : el.crustPct;
+      if (pct > 0) {
+        subEl.textContent = pct >= 0.01 ? `${pct}%` : `${pct.toExponential(1)}%`;
+        const norm = Math.min(1, Math.log10(pct * 100000 + 1) / Math.log10(6500001));
+        tile.style.background = interpolateHeatColor(norm);
+        tile.style.borderColor = "#38bdf8";
+        // Visually scale prominent elements up slightly
+        const scaleBoost = 1 + norm * 0.12;
+        tile.style.transform = `scale(${scaleBoost.toFixed(3)})`;
+      } else {
+        subEl.textContent = "Trace / 0%";
+        tile.style.background = "rgba(15, 23, 42, 0.55)";
+        tile.style.transform = "scale(0.92)";
+      }
+    } else if (state.colorMode === "block") {
+      subEl.textContent = `${el.block}-block`;
+      tile.style.background = `linear-gradient(145deg, ${BLOCK_COLORS[el.block]}48, ${BLOCK_COLORS[el.block]}1a)`;
+      tile.style.borderColor = BLOCK_COLORS[el.block];
+    } else if (state.colorMode === "phase") {
+      subEl.textContent = phase.toUpperCase();
+      const pColors = {
+        solid: "#64748b",
+        liquid: "#0284c7",
+        gas: "#dc2626",
+        unknown: "#334155"
+      };
+      tile.style.background = `${pColors[phase]}66`;
+      tile.style.borderColor = pColors[phase];
+    } else if (state.colorMode === "shells") {
+      const cnt = el.shells.length;
+      subEl.textContent = `${cnt} ${cnt === 1 ? "Shell" : "Shells"}`;
+      const norm = (cnt - 1) / 6;
+      tile.style.background = interpolateHeatColor(norm);
+      tile.style.borderColor = "rgba(255,255,255,0.28)";
+    } else if (trendProps[state.colorMode]) {
+      const propKey = trendProps[state.colorMode].key;
+      const val = el[propKey];
+      if (val !== null && val !== undefined) {
+        subEl.textContent = val;
+        const norm = propKey === "density"
+          ? (Math.log10(val + 0.0001) - Math.log10(range.min + 0.0001)) /
+            (Math.log10(range.max + 0.0001) - Math.log10(range.min + 0.0001))
+          : (val - range.min) / (range.max - range.min);
+        tile.style.background = interpolateHeatColor(norm);
+        tile.style.borderColor = "rgba(255,255,255,0.25)";
+      } else {
+        subEl.textContent = "—";
+        tile.style.background = "rgba(15, 23, 42, 0.7)";
+      }
+    }
+
+    let matches = true;
+    if (q) {
+      const isNum = /^\d+$/.test(q);
+      if (isNum) {
+        matches = String(el.z) === q || String(el.z).startsWith(q);
+      } else {
+        matches = el.name.toLowerCase().includes(q) || el.symbol.toLowerCase().includes(q);
+      }
+    }
+    if (matches && state.activeCategory) {
+      matches = el.category === state.activeCategory;
+    }
+    if (matches && state.activeBlock) {
+      matches = el.block === state.activeBlock;
+    }
+    if (matches && state.activePhaseFilter) {
+      matches = phase === state.activePhaseFilter;
+    }
+
+    tile.classList.toggle("dimmed", !matches);
+    tile.classList.toggle("selected", el.z === state.selectedZ);
+    tile.classList.toggle("compare-selected", el.z === state.compareZ && state.compareZ !== state.selectedZ);
+  });
+}
+
+function selectElement(z, openDrawer = true) {
+  if (state.selectedZ !== z) {
+    state.customNeutrons = ELEMENTS[z - 1].defaultNeutrons;
+  }
+  state.selectedZ = z;
+  const el = ELEMENTS[z - 1];
+  const inspector = document.getElementById("inspector");
+  if (openDrawer) {
+    inspector.classList.remove("closed");
+  }
+
+  const badge = document.getElementById("insBadge");
+  badge.className = `hero-badge cat-${el.category}`;
+  document.getElementById("insNum").textContent = el.z;
+  document.getElementById("insSym").textContent = el.symbol;
+  document.getElementById("insName").textContent = el.name;
+  document.getElementById("insCat").textContent = `${CATEGORIES[el.category].label} • ${el.block}-block`;
+  document.getElementById("insSummary").textContent = el.summary;
+
+  const cmpBtn = document.getElementById("compareBtn");
+  cmpBtn.classList.toggle("active", state.compareZ !== null);
+  cmpBtn.textContent = state.compareZ === el.z ? "Pinned" : (state.compareZ ? "Comparing" : "Compare");
+
+  renderBohrModel(el);
+  renderSpectroscope(el);
+  renderIsotopeBuilder(el);
+  renderProperties(el);
+  renderComparison();
+  renderTiles();
+}
+
+function renderBohrModel(el) {
+  const svg = document.getElementById("bohrSvg");
+  const pillsContainer = document.getElementById("shellPills");
+  const titleEl = document.getElementById("atomViewTitle");
+  const cx = 125, cy = 125;
+  const catColor = CATEGORIES[el.category].color;
+
+  if (state.orbitalCloud3D) {
+    titleEl.textContent = `3D QUANTUM ORBITALS (${el.block.toUpperCase()}-ORBITAL)`;
+    pillsContainer.innerHTML = "";
+    render3DOrbitalCloud(svg, el, cx, cy, catColor);
+    document.getElementById("bohrCaption").textContent =
+      `3D Probability Cloud • Valence Subshell: ${el.block}-orbital (${el.config})`;
+    return;
+  }
+
+  titleEl.textContent = "INTERACTIVE BOHR ATOM";
+
+  const pCount = Math.min(el.z, 28);
+  const nCount = Math.min(state.customNeutrons, 34);
+  const totalShown = pCount + nCount;
+  let nucleonsMarkup = "";
+  for (let i = 0; i < totalShown; i++) {
+    const isProton = i < pCount;
+    const rNuc = i === 0 ? 0 : Math.min(13, 3.2 * Math.sqrt(i));
+    const theta = i * 2.39996;
+    const nx = cx + rNuc * Math.cos(theta);
+    const ny = cy + rNuc * Math.sin(theta);
+    nucleonsMarkup += `<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="2.7" fill="${isProton ? '#ff4757' : '#94a3b8'}" stroke="#0f172a" stroke-width="0.6" />`;
+  }
+
+  let markup = `
+    <defs>
+      <filter id="bohrGlow" x="-35%" y="-35%" width="170%" height="170%">
+        <feGaussianBlur stdDeviation="3.5" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
+  `;
+
+  const numShells = el.shells.length;
+  const maxRadius = 104;
+  const minRadius = 28;
+  const step = numShells > 1 ? (maxRadius - minRadius) / (numShells - 1) : 0;
+  const pauseClass = state.bohrPaused ? " paused" : "";
+
+  pillsContainer.innerHTML = "";
+
+  el.shells.forEach((eCount, idx) => {
+    const r = minRadius + idx * step;
+    const baseDur = (11 + idx * 4.5) / state.orbitSpeedMultiplier;
+    const isHighlighted = state.highlightedShell === idx;
+    const ringOpacity = state.highlightedShell === null || isHighlighted ? 1 : 0.22;
+    const strokeCol = isHighlighted ? "#38bdf8" : "rgba(148,163,184,0.34)";
+    const strokeW = isHighlighted ? "2" : "1.1";
+    const revClass = idx % 2 === 1 ? " reverse" : "";
+
+    markup += `<g class="orbit-ring${revClass}${pauseClass}" style="animation-duration:${baseDur.toFixed(2)}s;opacity:${ringOpacity}">`;
+    markup += `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="none" stroke="${strokeCol}" stroke-width="${strokeW}" />`;
+
+    const dotCount = Math.min(eCount, 32);
+    for (let i = 0; i < dotCount; i++) {
+      const angle = (2 * Math.PI * i) / dotCount - Math.PI / 2;
+      const ex = cx + r * Math.cos(angle);
+      const ey = cy + r * Math.sin(angle);
+      const isValence = idx === numShells - 1;
+      markup += `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="${isValence ? 3.5 : 2.8}" fill="${isValence ? '#38bdf8' : '#f8fafc'}" filter="url(#bohrGlow)" />`;
+    }
+    markup += `</g>`;
+
+    const pill = document.createElement("button");
+    pill.className = `shell-pill${isHighlighted ? " active" : ""}`;
+    pill.textContent = `${SHELL_NAMES[idx] || `Shell ${idx + 1}`}: ${eCount}e⁻`;
+    pill.addEventListener("click", () => {
+      state.highlightedShell = state.highlightedShell === idx ? null : idx;
+      playElementNote(el.z + idx * 2);
+      renderBohrModel(el);
+    });
+    pillsContainer.appendChild(pill);
+  });
+
+  markup += `
+    <circle cx="${cx}" cy="${cy}" r="16" fill="rgba(15,23,42,0.88)" stroke="${catColor}" stroke-width="1.6" />
+    ${nucleonsMarkup}
+  `;
+
+  svg.innerHTML = markup;
+  document.getElementById("bohrCaption").textContent =
+    `Shells: ${el.shells.join(" – ")} (${el.z}e⁻ total • click shell pills to isolate)`;
+}
+
+function render3DOrbitalCloud(svg, el, cx, cy, catColor) {
+  const pauseClass = state.bohrPaused ? " paused" : "";
+  const dur = (8 / state.orbitSpeedMultiplier).toFixed(2);
+  let lobes = "";
+
+  if (el.block === "s") {
+    lobes = `
+      <circle cx="${cx}" cy="${cy}" r="58" fill="${catColor}" fill-opacity="0.22" stroke="${catColor}" stroke-width="1.5" />
+      <ellipse cx="${cx}" cy="${cy}" rx="58" ry="22" fill="none" stroke="#7dd3fc" stroke-width="1.1" stroke-dasharray="4 3" />
+      <ellipse cx="${cx}" cy="${cy}" rx="22" ry="58" fill="none" stroke="#7dd3fc" stroke-width="1.1" stroke-dasharray="4 3" />
+    `;
+  } else if (el.block === "p") {
+    [0, 90, 45].forEach((rot, i) => {
+      lobes += `
+        <g transform="rotate(${rot} ${cx} ${cy})" opacity="${i === 2 ? 0.65 : 0.9}">
+          <ellipse cx="${cx}" cy="${cy - 36}" rx="18" ry="34" fill="#38bdf8" fill-opacity="0.22" stroke="#38bdf8" stroke-width="1.3" />
+          <ellipse cx="${cx}" cy="${cy + 36}" rx="18" ry="34" fill="#c084fc" fill-opacity="0.22" stroke="#c084fc" stroke-width="1.3" />
+        </g>
+      `;
+    });
+  } else if (el.block === "d") {
+    [0, 45, 90, 135].forEach(rot => {
+      lobes += `
+        <g transform="rotate(${rot} ${cx} ${cy})">
+          <ellipse cx="${cx}" cy="${cy - 40}" rx="14" ry="28" fill="#ffbe0b" fill-opacity="0.18" stroke="#ffbe0b" stroke-width="1.1" />
+          <ellipse cx="${cx}" cy="${cy + 40}" rx="14" ry="28" fill="#ffbe0b" fill-opacity="0.18" stroke="#ffbe0b" stroke-width="1.1" />
+        </g>
+      `;
+    });
+  } else {
+    for (let k = 0; k < 6; k++) {
+      const rot = k * 30;
+      lobes += `
+        <g transform="rotate(${rot} ${cx} ${cy})">
+          <ellipse cx="${cx}" cy="${cy - 44}" rx="12" ry="26" fill="#ff6b81" fill-opacity="0.18" stroke="#ff6b81" stroke-width="1" />
+          <ellipse cx="${cx}" cy="${cy + 44}" rx="12" ry="26" fill="#38bdf8" fill-opacity="0.18" stroke="#38bdf8" stroke-width="1" />
+        </g>
+      `;
+    }
+  }
+
+  svg.innerHTML = `
+    <g class="orbit-ring${pauseClass}" style="animation-duration:${dur}s">
+      ${lobes}
+    </g>
+    <circle cx="${cx}" cy="${cy}" r="11" fill="${catColor}" stroke="#fff" stroke-width="1.4" />
+    <text x="${cx}" y="${cy + 3.5}" text-anchor="middle" fill="#fff" font-size="9.5" font-weight="800">${el.symbol}</text>
+  `;
+}
+
+function exciteAtomPhoton() {
+  const el = ELEMENTS[state.selectedZ - 1];
+  const flame = getElementFlameData(el);
+  const svg = document.getElementById("bohrSvg");
+  const cx = 125, cy = 125;
+
+  playElementNote(el.z + 12, "8n");
+  const wave = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  wave.setAttribute("cx", String(cx));
+  wave.setAttribute("cy", String(cy));
+  wave.setAttribute("r", "22");
+  wave.setAttribute("stroke", flame.color);
+  wave.setAttribute("class", "photon-wave");
+  svg.appendChild(wave);
+  setTimeout(() => wave.remove(), 900);
+}
+
+function renderSpectroscope(el) {
+  const flame = getElementFlameData(el);
+  const badge = document.getElementById("flameBadge");
+  const bar = document.getElementById("spectrumBar");
+
+  badge.textContent = `Flame: ${flame.name}`;
+  badge.style.background = flame.color;
+
+  bar.innerHTML = flame.lines.map(nm => {
+    const pct = Math.max(2, Math.min(98, ((nm - 380) / (720 - 380)) * 100));
+    const col = wavelengthToColor(nm);
+    return `<span class="spec-line" style="left:${pct.toFixed(1)}%;background:${col};color:${col}" title="${nm} nm"></span>`;
+  }).join("");
+}
+
+function renderIsotopeBuilder(el) {
+  const z = el.z;
+  const n = state.customNeutrons;
+  const massNum = z + n;
+
+  document.getElementById("nucProtons").textContent = z;
+  document.getElementById("nucNeutrons").textContent = n;
+  document.getElementById("isotopeName").textContent = `${massNum}${el.symbol}`;
+
+  // Determine nuclear stability along the valley of stability
+  const idealN = z === 1 ? 0 : Math.round(z * (1 + 0.0068 * Math.pow(z, 0.85)));
+  const diff = n - idealN;
+  const isRadioactiveElement = z >= 83 || z === 43 || z === 61;
+  const isStable = !isRadioactiveElement && Math.abs(diff) <= (z <= 20 ? 1 : 2);
+
+  const pill = document.getElementById("stabilityPill");
+  const info = document.getElementById("decayInfo");
+  const decayBtn = document.getElementById("triggerDecayBtn");
+
+  if (isStable) {
+    pill.textContent = "STABLE";
+    pill.className = "stability-pill stable";
+    info.textContent = `Balanced strong nuclear force (N/Z = ${(n / z).toFixed(2)})`;
+    decayBtn.style.display = "none";
+  } else {
+    pill.textContent = "RADIOACTIVE";
+    pill.className = "stability-pill radioactive";
+    decayBtn.style.display = "inline-block";
+
+    if (z >= 83) {
+      info.textContent = "Heavy nucleus → Alpha (α) decay (-2p⁺, -2n⁰)";
+      decayBtn.dataset.mode = "alpha";
+    } else if (diff > 0) {
+      info.textContent = "Neutron-rich → Beta-minus (β⁻) decay (n⁰ → p⁺)";
+      decayBtn.dataset.mode = "betaminus";
+    } else {
+      info.textContent = "Proton-rich → Beta-plus (β⁺) decay (p⁺ → n⁰)";
+      decayBtn.dataset.mode = "betaplus";
+    }
+  }
+}
+
+function triggerNuclearDecay() {
+  const mode = document.getElementById("triggerDecayBtn").dataset.mode;
+  let newZ = state.selectedZ;
+  let newN = state.customNeutrons;
+
+  if (mode === "alpha" && newZ > 2) {
+    newZ -= 2;
+    newN = Math.max(0, newN - 2);
+  } else if (mode === "betaminus" && newZ < 118) {
+    newZ += 1;
+    newN = Math.max(0, newN - 1);
+  } else if (mode === "betaplus" && newZ > 1) {
+    newZ -= 1;
+    newN += 1;
+  }
+
+  const badge = document.getElementById("insBadge");
+  spawnSparkles(badge.getBoundingClientRect().left + 32, badge.getBoundingClientRect().top + 32, "#ff4757");
+  playElementNote(newZ, "4n");
+
+  state.selectedZ = newZ;
+  state.customNeutrons = newN;
+  selectElement(newZ, true);
+}
+
+/**
+ * 🧪 Interactive Molecule & Bond Lab Engine (True 2D Molecular Geometry, Bond Orders, Lone Pairs & Interactive Dragging)
+ */
+const labNodePositions = new Map();
+let draggingLabAtomIdx = null;
+
+function addAtomToLab(z) {
+  if (state.labAtoms.length >= 8) {
+    state.labAtoms.shift();
+  }
+  state.labAtoms.push(z);
+  labNodePositions.clear();
+  playElementNote(z);
+  renderBondLab();
+}
+
+function getValenceCapacity(el) {
+  if (el.z === 1) return 1;
+  if (el.category === "noble") return 0;
+  if (el.group === 1) return 1;
+  if (el.group === 2) return 2;
+  if (el.group === 13) return 3;
+  if (el.group === 14) return 4;
+  if (el.group === 15) return 3;
+  if (el.group === 16) return 2;
+  if (el.group === 17) return 1;
+  return 2; // Transition / other metals
+}
+
+function renderBondLab() {
+  const atoms = state.labAtoms;
+  const emptyEl = document.getElementById("chamberEmpty");
+  const svg = document.getElementById("bondCanvasSvg");
+  const canvas3d = document.getElementById("bondCanvas3D");
+  const hint3d = document.getElementById("lab3dHint");
+  const formulaEl = document.getElementById("molFormula");
+  const nameEl = document.getElementById("molName");
+  const metaEl = document.getElementById("molMeta");
+  const listEl = document.getElementById("labAtomsList");
+
+  if (state.labAnimFrame) {
+    cancelAnimationFrame(state.labAnimFrame);
+    state.labAnimFrame = null;
+  }
+
+  listEl.innerHTML = atoms.map((z, idx) => {
+    const el = ELEMENTS[z - 1];
+    return `<span class="atom-token" style="background:${CATEGORIES[el.category].color}88" data-idx="${idx}" title="Click to remove">${el.symbol} ×</span>`;
+  }).join("");
+
+  listEl.querySelectorAll(".atom-token").forEach(tok => {
+    tok.addEventListener("click", () => {
+      state.labAtoms.splice(parseInt(tok.dataset.idx, 10), 1);
+      renderBondLab();
+    });
+  });
+
+  if (atoms.length === 0) {
+    emptyEl.style.display = "block";
+    svg.style.display = "none";
+    canvas3d.style.display = "none";
+    hint3d.style.display = "none";
+    formulaEl.textContent = "—";
+    nameEl.textContent = "Awaiting Reactants";
+    metaEl.textContent = "Drag tiles here or click + Lab in the inspector";
+    return;
+  }
+
+  emptyEl.style.display = "none";
+  svg.style.display = state.lab3DMode ? "none" : "block";
+  canvas3d.style.display = state.lab3DMode ? "block" : "none";
+  hint3d.style.display = state.lab3DMode ? "block" : "none";
+
+  // Count atoms & compute molecular weight
+  const counts = {};
+  let totalMass = 0;
+  atoms.forEach(z => {
+    const el = ELEMENTS[z - 1];
+    counts[el.symbol] = (counts[el.symbol] || 0) + 1;
+    totalMass += el.mass;
+  });
+
+  // Format chemical formula (Hill system: C first, H second, then alphabetical)
+  const syms = Object.keys(counts).sort((a, b) => {
+    if (a === "C") return -1;
+    if (b === "C") return 1;
+    if (a === "H" && !counts["C"]) return -1;
+    if (b === "H" && !counts["C"]) return 1;
+    if (a === "H") return -1;
+    if (b === "H") return 1;
+    return a.localeCompare(b);
+  });
+
+  const subDigits = "₀₁₂₃₄₅₆₇₈₉";
+  const toSub = n => n === 1 ? "" : String(n).split("").map(d => subDigits[d]).join("");
+  const formulaStr = syms.map(s => `${s}${toSub(counts[s])}`).join("");
+  const plainKey = syms.map(s => `${s}${counts[s] === 1 ? "" : counts[s]}`).join("");
+
+  const KNOWN_MOLECULES = {
+    "H2O":   { name: "Water (Dihydrogen Monoxide)", bond: "Polar Covalent (104.5° Bent)", geometry: "bent" },
+    "NaCl":  { name: "Sodium Chloride (Table Salt)", bond: "Ionic Crystal Lattice (Na⁺ Cl⁻)", geometry: "linear" },
+    "CO2":   { name: "Carbon Dioxide", bond: "Double Covalent (180° Linear)", geometry: "linear" },
+    "CH4":   { name: "Methane", bond: "Nonpolar Covalent (109.5° Tetrahedral)", geometry: "tetrahedral" },
+    "NH3":   { name: "Ammonia", bond: "Polar Covalent (107° Trigonal Pyramidal)", geometry: "pyramidal" },
+    "Fe2O3": { name: "Iron(III) Oxide (Rust)", bond: "Ionic Metal Oxide", geometry: "chain" },
+    "O2":    { name: "Dioxygen Gas", bond: "Double Covalent (O=O)", geometry: "linear" },
+    "H2":    { name: "Dihydrogen Gas", bond: "Single Covalent (H–H)", geometry: "linear" },
+    "N2":    { name: "Dinitrogen Gas", bond: "Triple Covalent (N≡N)", geometry: "linear" },
+    "HCl":   { name: "Hydrochloric Acid", bond: "Polar Covalent (H–Cl)", geometry: "linear" },
+    "CO":    { name: "Carbon Monoxide", bond: "Triple Covalent (C≡O)", geometry: "linear" },
+    "SO2":   { name: "Sulfur Dioxide", bond: "Polar Covalent (Bent)", geometry: "bent" },
+    "CaO":   { name: "Calcium Oxide (Quicklime)", bond: "Ionic Bond (Ca²⁺ O²⁻)", geometry: "linear" },
+    "MgO":   { name: "Magnesium Oxide", bond: "Ionic Bond (Mg²⁺ O²⁻)", geometry: "linear" },
+    "SiO2":  { name: "Silicon Dioxide (Quartz)", bond: "Network Covalent", geometry: "linear" }
+  };
+
+  // Determine bond type dynamically from electronegativity delta
+  const ens = atoms.map(z => ELEMENTS[z - 1].en).filter(v => v !== null);
+  const deltaEN = ens.length >= 2 ? (Math.max(...ens) - Math.min(...ens)) : 0;
+  const isIonic = deltaEN >= 1.7;
+  const bondClassification = KNOWN_MOLECULES[plainKey]
+    ? KNOWN_MOLECULES[plainKey].bond
+    : atoms.length === 1
+      ? "Unbonded Single Atom"
+      : isIonic
+        ? `Ionic Transfer (ΔEN = ${deltaEN.toFixed(2)})`
+        : `Covalent Electron Sharing (ΔEN = ${deltaEN.toFixed(2)})`;
+
+  formulaEl.textContent = formulaStr;
+  nameEl.textContent = KNOWN_MOLECULES[plainKey]
+    ? KNOWN_MOLECULES[plainKey].name
+    : (atoms.length === 1 ? `${ELEMENTS[atoms[0] - 1].name} Atom` : `Custom ${formulaStr} Complex`);
+  metaEl.textContent = `Molar Mass: ${totalMass.toFixed(3)} g/mol • ${bondClassification}`;
+
+  // Play celebratory harmonic chord when a known molecule is formed
+  if (KNOWN_MOLECULES[plainKey] && state.soundEnabled && typeof Tone !== "undefined" && synth) {
+    try {
+      synth.triggerAttackRelease([523.25, 659.25, 783.99], "8n");
+    } catch (e) {}
+  }
+
+  if (state.lab3DMode) {
+    render3DBondCanvas(atoms, plainKey, isIonic);
+    return;
+  }
+
+  // Render live interactive 2D valence overlap SVG
+  const width = 640, height = 230;
+  const cxMid = width / 2, cyMid = height / 2;
+
+  const nodes = atoms.map((z, idx) => {
+    const el = ELEMENTS[z - 1];
+    return { idx, z, el, cap: getValenceCapacity(el) };
+  });
+
+  const hasNobleGas = nodes.some(n => n.el.category === "noble");
+
+  // Select central hub atom (highest valence capacity, prioritizing non-hydrogen central atoms)
+  let centerIdx = 0;
+  let bestScore = -1;
+  nodes.forEach((n, i) => {
+    const score = (n.z === 1 ? 0.5 : n.cap * 10) - (n.el.en || 2);
+    if (score > bestScore) {
+      bestScore = score;
+      centerIdx = i;
+    }
+  });
+
+  const peripherals = nodes.filter((_, i) => i !== centerIdx);
+  const edges = [];
+
+  if (!hasNobleGas && nodes.length > 1) {
+    if (plainKey === "Fe2O3") {
+      // Alternating chain Fe - O - Fe - O - Fe
+      const irons = nodes.filter(n => n.z === 26);
+      const oxys = nodes.filter(n => n.z === 8);
+      if (irons.length === 2 && oxys.length === 3) {
+        edges.push({ a: oxys[0].idx, b: irons[0].idx, order: 2 });
+        edges.push({ a: irons[0].idx, b: oxys[1].idx, order: 1 });
+        edges.push({ a: oxys[1].idx, b: irons[1].idx, order: 1 });
+        edges.push({ a: irons[1].idx, b: oxys[2].idx, order: 2 });
+      }
+    } else {
+      // Connect peripheral atoms to the central hub with realistic bond order (single, double, triple)
+      const centerNode = nodes[centerIdx];
+      let remainingCenterCap = centerNode.cap;
+      peripherals.forEach((pNode, pIdx) => {
+        if (pNode.cap === 0) return;
+        let order = 1;
+        if (peripherals.length === 1) {
+          order = Math.min(3, Math.min(centerNode.cap, pNode.cap));
+        } else if (peripherals.length === 2 && remainingCenterCap >= 4 && pNode.cap >= 2) {
+          order = 2; // e.g., CO2, SiO2
+        } else if (plainKey === "SO2" && pIdx === 0) {
+          order = 2;
+        }
+        remainingCenterCap = Math.max(0, remainingCenterCap - order);
+        edges.push({ a: centerIdx, b: pNode.idx, order });
+      });
+    }
+  }
+
+  // Assign 2D geometric coordinates if not manually dragged by user
+  if (labNodePositions.size !== nodes.length) {
+    labNodePositions.clear();
+    if (nodes.length === 1) {
+      labNodePositions.set(0, { x: cxMid, y: cyMid });
+    } else if (plainKey === "Fe2O3" && edges.length === 4) {
+      const irons = nodes.filter(n => n.z === 26);
+      const oxys = nodes.filter(n => n.z === 8);
+      labNodePositions.set(oxys[0].idx, { x: cxMid - 190, y: cyMid + 22 });
+      labNodePositions.set(irons[0].idx, { x: cxMid - 95, y: cyMid - 22 });
+      labNodePositions.set(oxys[1].idx, { x: cxMid, y: cyMid + 22 });
+      labNodePositions.set(irons[1].idx, { x: cxMid + 95, y: cyMid - 22 });
+      labNodePositions.set(oxys[2].idx, { x: cxMid + 190, y: cyMid + 22 });
+    } else {
+      labNodePositions.set(centerIdx, { x: cxMid, y: cyMid });
+      const geom = KNOWN_MOLECULES[plainKey]?.geometry;
+      const bondLen = 96;
+
+      peripherals.forEach((pNode, k) => {
+        let angle = (2 * Math.PI * k) / peripherals.length - Math.PI / 2;
+        if (geom === "bent" && peripherals.length === 2) {
+          // 104.5° V-shape downward
+          angle = k === 0 ? (Math.PI * 0.79) : (Math.PI * 0.21);
+        } else if (geom === "linear" && peripherals.length === 2) {
+          angle = k === 0 ? Math.PI : 0;
+        } else if (peripherals.length === 1) {
+          angle = k === 0 ? 0 : Math.PI;
+          labNodePositions.set(centerIdx, { x: cxMid - 58, y: cyMid });
+          labNodePositions.set(pNode.idx, { x: cxMid + 58, y: cyMid });
+          return;
+        } else if (geom === "pyramidal" && peripherals.length === 3) {
+          const angles = [Math.PI * 0.82, Math.PI * 0.5, Math.PI * 0.18];
+          angle = angles[k];
+        } else if (geom === "tetrahedral" && peripherals.length === 4) {
+          const angles = [-Math.PI / 2, Math.PI * 0.15, Math.PI * 0.5, Math.PI * 0.85];
+          angle = angles[k];
+        }
+        labNodePositions.set(pNode.idx, {
+          x: cxMid + bondLen * Math.cos(angle),
+          y: cyMid + bondLen * Math.sin(angle)
+        });
+      });
+    }
+  }
+
+  let markup = `
+    <defs>
+      <filter id="atomGlow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="3.5" result="blur" />
+        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+      </filter>
+    </defs>
+  `;
+
+  // Render Chemical Bonds (Single, Double, Triple, or Ionic Electron Transfer)
+  edges.forEach((edge, eIdx) => {
+    const p1 = labNodePositions.get(edge.a);
+    const p2 = labNodePositions.get(edge.b);
+    const el1 = nodes[edge.a].el;
+    const el2 = nodes[edge.b].el;
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+
+    const localDeltaEN = (el1.en !== null && el2.en !== null) ? Math.abs(el1.en - el2.en) : 0;
+    const edgeIonic = localDeltaEN >= 1.7;
+
+    if (edgeIonic) {
+      // Determine donor (lower EN) -> acceptor (higher EN)
+      const donor = (el1.en || 0) <= (el2.en || 0) ? p1 : p2;
+      const acceptor = donor === p1 ? p2 : p1;
+      markup += `<line x1="${donor.x.toFixed(1)}" y1="${donor.y.toFixed(1)}" x2="${acceptor.x.toFixed(1)}" y2="${acceptor.y.toFixed(1)}" stroke="#facc15" stroke-width="2.2" stroke-dasharray="5 4" opacity="0.7" />`;
+      // Animated transferred electron packet jumping from metal to nonmetal
+      markup += `<circle r="4.8" fill="#facc15" filter="url(#atomGlow)">
+        <animate attributeName="cx" values="${donor.x.toFixed(1)};${acceptor.x.toFixed(1)}" dur="1.5s" repeatCount="indefinite" />
+        <animate attributeName="cy" values="${donor.y.toFixed(1)};${acceptor.y.toFixed(1)}" dur="1.5s" repeatCount="indefinite" />
+      </circle>`;
+    } else {
+      // Draw 1, 2, or 3 parallel covalent bond rods + animated shared electron pairs
+      const offsets = edge.order === 1 ? [0] : edge.order === 2 ? [-5, 5] : [-7, 0, 7];
+      offsets.forEach((off, oIdx) => {
+        const x1 = p1.x + nx * off;
+        const y1 = p1.y + ny * off;
+        const x2 = p2.x + nx * off;
+        const y2 = p2.y + ny * off;
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+
+        markup += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#38bdf8" stroke-width="2.6" opacity="0.65" />`;
+
+        // Shared covalent electron pair oscillating smoothly across the bond
+        const dur = (1.3 + oIdx * 0.25 + eIdx * 0.1).toFixed(2);
+        markup += `<circle cx="${(mx + nx * 4).toFixed(1)}" cy="${(my + ny * 4).toFixed(1)}" r="3.4" fill="#38bdf8">
+          <animate attributeName="cx" values="${(mx + nx * 5).toFixed(1)};${(mx - nx * 5).toFixed(1)};${(mx + nx * 5).toFixed(1)}" dur="${dur}s" repeatCount="indefinite" />
+          <animate attributeName="cy" values="${(my + ny * 5).toFixed(1)};${(my - ny * 5).toFixed(1)};${(my + ny * 5).toFixed(1)}" dur="${dur}s" repeatCount="indefinite" />
+        </circle>`;
+        markup += `<circle cx="${(mx - nx * 4).toFixed(1)}" cy="${(my - ny * 4).toFixed(1)}" r="3.4" fill="#c084fc">
+          <animate attributeName="cx" values="${(mx - nx * 5).toFixed(1)};${(mx + nx * 5).toFixed(1)};${(mx - nx * 5).toFixed(1)}" dur="${dur}s" repeatCount="indefinite" />
+          <animate attributeName="cy" values="${(my - ny * 5).toFixed(1)};${(my + ny * 5).toFixed(1)};${(my - ny * 5).toFixed(1)}" dur="${dur}s" repeatCount="indefinite" />
+        </circle>`;
+      });
+    }
+  });
+
+  // Render Atoms, Valence Shells, Lone Pairs & Partial Charges (δ+ / δ-)
+  nodes.forEach((node) => {
+    const pos = labNodePositions.get(node.idx);
+    const el = node.el;
+    const col = CATEGORIES[el.category].color;
+    const valElectrons = el.shells[el.shells.length - 1];
+
+    // Calculate bonded electrons on this atom to display remaining lone pairs accurately
+    const bondedCount = edges
+      .filter(e => e.a === node.idx || e.b === node.idx)
+      .reduce((acc, e) => acc + e.order, 0);
+    const nonBondingElectrons = Math.max(0, valElectrons - bondedCount);
+    const lonePairs = Math.floor(nonBondingElectrons / 2);
+
+    // Outer valence orbital ring
+    markup += `<g class="lab-atom-node" data-node-idx="${node.idx}" style="cursor:grab;">`;
+    markup += `<circle cx="${pos.x.toFixed(1)}" cy="${pos.y.toFixed(1)}" r="38" fill="none" stroke="${col}" stroke-width="1.3" stroke-dasharray="3 3" opacity="0.65" />`;
+
+    // Draw lone electron pairs on the side opposite to bonds
+    if (!isIonic && lonePairs > 0 && nodes.length > 1) {
+      const incidentEdges = edges.filter(e => e.a === node.idx || e.b === node.idx);
+      let avgBx = 0, avgBy = 0;
+      incidentEdges.forEach(e => {
+        const otherIdx = e.a === node.idx ? e.b : e.a;
+        const op = labNodePositions.get(otherIdx);
+        avgBx += (op.x - pos.x);
+        avgBy += (op.y - pos.y);
+      });
+      const baseAwayAngle = incidentEdges.length > 0 ? Math.atan2(-avgBy, -avgBx) : -Math.PI / 2;
+
+      for (let lp = 0; lp < Math.min(lonePairs, 3); lp++) {
+        const spread = (lp - (Math.min(lonePairs, 3) - 1) / 2) * 0.72;
+        const ang = baseAwayAngle + spread;
+        const lx = pos.x + 31 * Math.cos(ang);
+        const ly = pos.y + 31 * Math.sin(ang);
+        const px = -Math.sin(ang) * 3.5;
+        const py = Math.cos(ang) * 3.5;
+        markup += `<circle cx="${(lx + px).toFixed(1)}" cy="${(ly + py).toFixed(1)}" r="2.6" fill="#fde047" title="Lone Pair" />`;
+        markup += `<circle cx="${(lx - px).toFixed(1)}" cy="${(ly - py).toFixed(1)}" r="2.6" fill="#fde047" title="Lone Pair" />`;
+      }
+    }
+
+    // Core Atom Sphere
+    markup += `<circle cx="${pos.x.toFixed(1)}" cy="${pos.y.toFixed(1)}" r="21" fill="${col}" stroke="#ffffff" stroke-width="1.8" filter="url(#atomGlow)" />`;
+    markup += `<text x="${pos.x.toFixed(1)}" y="${(pos.y + 5).toFixed(1)}" text-anchor="middle" fill="#fff" font-family="Space Grotesk, sans-serif" font-size="13.5" font-weight="800" pointer-events="none">${el.symbol}</text>`;
+
+    // Partial / Formal Charge Badge (e.g., Na⁺, Cl⁻, δ⁻, δ⁺)
+    if (nodes.length > 1 && !hasNobleGas && el.en !== null) {
+      const avgEN = ens.reduce((a, b) => a + b, 0) / ens.length;
+      let chargeTag = "";
+      let badgeCol = "#38bdf8";
+      if (isIonic) {
+        chargeTag = el.en < avgEN ? "+" : "−";
+        badgeCol = el.en < avgEN ? "#fb7185" : "#4ade80";
+      } else if (Math.abs(el.en - avgEN) >= 0.35) {
+        chargeTag = el.en > avgEN ? "δ−" : "δ+";
+        badgeCol = el.en > avgEN ? "#c084fc" : "#38bdf8";
+      }
+      if (chargeTag) {
+        markup += `<circle cx="${(pos.x + 17).toFixed(1)}" cy="${(pos.y - 17).toFixed(1)}" r="9" fill="#0f172a" stroke="${badgeCol}" stroke-width="1.2" />`;
+        markup += `<text x="${(pos.x + 17).toFixed(1)}" y="${(pos.y - 13.5).toFixed(1)}" text-anchor="middle" fill="${badgeCol}" font-size="8.5" font-weight="800" pointer-events="none">${chargeTag}</text>`;
+      }
+    }
+    markup += `</g>`;
+  });
+
+  svg.innerHTML = markup;
+}
+
+/**
+ * Renders an interactive 3D molecular geometry ball-and-stick model on HTML5 Canvas
+ */
+function render3DBondCanvas(atoms, plainKey, isIonic) {
+  const canvas = document.getElementById("bondCanvas3D");
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(300, rect.width || 640);
+  const h = 230;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+
+  // Build 3D coordinates based on VSEPR molecular geometry
+  const nodes = [];
+  const bonds = [];
+
+  if (atoms.length === 1) {
+    nodes.push({ z: atoms[0], x: 0, y: 0, zPos: 0, phase: 0 });
+  } else if (plainKey === "H2O" && atoms.length === 3) {
+    const oIdx = atoms.findIndex(z => z === 8);
+    const hIndices = atoms.map((_, i) => i).filter(i => i !== oIdx);
+    nodes.push({ z: 8, x: 0, y: -14, zPos: 0, origIdx: 0, phase: 0.4 });
+    const halfAngle = (104.5 / 2) * (Math.PI / 180);
+    const len = 62;
+    nodes.push({ z: 1, x: -Math.sin(halfAngle) * len, y: -14 + Math.cos(halfAngle) * len, zPos: 14, origIdx: 1, phase: 1.7 });
+    nodes.push({ z: 1, x: Math.sin(halfAngle) * len, y: -14 + Math.cos(halfAngle) * len, zPos: -14, origIdx: 2, phase: 3.1 });
+    bonds.push([0, 1], [0, 2]);
+  } else if (plainKey === "CO2" && atoms.length === 3) {
+    nodes.push({ z: 6, x: 0, y: 0, zPos: 0, phase: 0.2 });
+    nodes.push({ z: 8, x: -72, y: 0, zPos: 0, phase: 1.3 });
+    nodes.push({ z: 8, x: 72, y: 0, zPos: 0, phase: 2.6 });
+    bonds.push([0, 1, 2], [0, 2, 2]); // Double bonds
+  } else if (plainKey === "CH4" && atoms.length === 5) {
+    nodes.push({ z: 6, x: 0, y: 0, zPos: 0, phase: 0.5 });
+    const d = 58;
+    const tet = [
+      [0, -d, 0],
+      [d * 0.94, d * 0.33, 0],
+      [-d * 0.47, d * 0.33, d * 0.81],
+      [-d * 0.47, d * 0.33, -d * 0.81]
+    ];
+    tet.forEach((p, idx) => nodes.push({ z: 1, x: p[0], y: p[1], zPos: p[2], phase: idx * 1.25 }));
+    bonds.push([0, 1], [0, 2], [0, 3], [0, 4]);
+  } else if (plainKey === "NH3" && atoms.length === 4) {
+    nodes.push({ z: 7, x: 0, y: -16, zPos: 0, phase: 0.8 });
+    const d = 58;
+    for (let i = 0; i < 3; i++) {
+      const a = (i * 2 * Math.PI) / 3;
+      nodes.push({ z: 1, x: Math.cos(a) * d * 0.88, y: 24, zPos: Math.sin(a) * d * 0.88, phase: i * 1.9 });
+      bonds.push([0, i + 1]);
+    }
+  } else {
+    // General VSEPR hub-and-spoke 3D polyhedron for arbitrary combinations
+    // Pick least electronegative non-hydrogen atom as central hub
+    let centerIdx = 0;
+    let bestScore = Infinity;
+    atoms.forEach((z, i) => {
+      const el = ELEMENTS[z - 1];
+      const score = z === 1 ? 999 : (el.en || 2.0);
+      if (score < bestScore) { bestScore = score; centerIdx = i; }
+    });
+    nodes.push({ z: atoms[centerIdx], x: 0, y: 0, zPos: 0, phase: 0.3 });
+    const ligands = atoms.filter((_, i) => i !== centerIdx);
+    const radius = 66;
+    ligands.forEach((lz, i) => {
+      const n = ligands.length;
+      if (n === 1) {
+        nodes.push({ z: lz, x: radius, y: 0, zPos: 0, phase: 1.5 });
+      } else if (n === 2) {
+        nodes.push({ z: lz, x: i === 0 ? -radius : radius, y: 0, zPos: 0, phase: i * 2.2 });
+      } else {
+        // Fibonacci sphere distribution in 3D
+        const phi = Math.acos(1 - (2 * (i + 0.5)) / n);
+        const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+        nodes.push({
+          z: lz,
+          x: radius * Math.sin(phi) * Math.cos(theta),
+          y: radius * Math.cos(phi),
+          zPos: radius * Math.sin(phi) * Math.sin(theta),
+          phase: i * 1.1
+        });
+      }
+      bonds.push([0, i + 1]);
+    });
+  }
+
+  // Compute mass-weighted center so vibration keeps total momentum realistic (heavier central hubs jitter less)
+  const masses = nodes.map(nd => Math.max(1, ELEMENTS[nd.z - 1].mass));
+  const totalMass = masses.reduce((a, b) => a + b, 0);
+
+  let t = 0;
+  function drawFrame() {
+    if (!state.lab3DMode || state.labAtoms.length === 0) return;
+    t += 0.035;
+    if (!state.labDragging) {
+      state.labRotY += 0.012;
+    }
+
+    ctx.clearRect(0, 0, w, h);
+
+    const cosY = Math.cos(state.labRotY);
+    const sinY = Math.sin(state.labRotY);
+    const cosX = Math.cos(state.labRotX);
+    const sinX = Math.sin(state.labRotX);
+    const fov = 280;
+
+    // Apply subtle thermal bond-stretch & zero-point vibrational motion scaled inversely by atomic mass
+    const rawOffsets = nodes.map((nd, idx) => {
+      const massFactor = Math.min(1.6, Math.max(0.22, 16 / masses[idx]));
+      const amp = 2.4 * massFactor;
+      const vx = Math.sin(t * 2.3 + nd.phase) * amp;
+      const vy = Math.cos(t * 1.9 + nd.phase * 1.3) * amp;
+      const vz = Math.sin(t * 2.1 + nd.phase * 0.7) * amp;
+      return { vx, vy, vz };
+    });
+
+    // Subtract mass-weighted mean displacement so the center of mass drifts organically rather than exploding
+    let meanVx = 0, meanVy = 0, meanVz = 0;
+    rawOffsets.forEach((off, idx) => {
+      meanVx += off.vx * masses[idx];
+      meanVy += off.vy * masses[idx];
+      meanVz += off.vz * masses[idx];
+    });
+    meanVx /= totalMass;
+    meanVy /= totalMass;
+    meanVz /= totalMass;
+
+    // Gentle floating buoyancy across the chamber
+    const floatX = Math.sin(t * 0.75) * 6;
+    const floatY = Math.cos(t * 0.62) * 4.5;
+
+    // Project 3D nodes to 2D screen space
+    const projected = nodes.map((nd, idx) => {
+      const off = rawOffsets[idx];
+      const vx = nd.x + (off.vx - meanVx);
+      const vy = nd.y + (off.vy - meanVy);
+      const vz = nd.zPos + (off.vz - meanVz);
+
+      const x1 = vx * cosY - vz * sinY;
+      const z1 = vz * cosY + vx * sinY;
+      const y2 = vy * cosX - z1 * sinX;
+      const z2 = z1 * cosX + vy * sinX;
+      const scale = fov / (fov + z2);
+      return {
+        idx,
+        z: nd.z,
+        sx: w / 2 + floatX + x1 * scale,
+        sy: h / 2 + floatY + y2 * scale,
+        depth: z2,
+        scale
+      };
+    });
+
+    // Soft ambient studio floor shadows underneath the 3D molecule
+    const floorY = h - 22;
+    projected.forEach(p => {
+      const heightFactor = Math.max(0.45, 1 - Math.abs(floorY - p.sy) / 220);
+      const shadowX = p.sx + (floorY - p.sy) * 0.14;
+      const shadowY = floorY + p.depth * 0.08;
+      const shadowR = 26 * p.scale * heightFactor;
+      const shGrad = ctx.createRadialGradient(shadowX, shadowY, 1.5, shadowX, shadowY, shadowR);
+      shGrad.addColorStop(0, "rgba(0, 0, 0, 0.78)");
+      shGrad.addColorStop(0.55, "rgba(2, 6, 23, 0.36)");
+      shGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.save();
+      ctx.translate(shadowX, shadowY);
+      ctx.scale(1.45, 0.32);
+      ctx.beginPath();
+      ctx.arc(0, 0, shadowR, 0, Math.PI * 2);
+      ctx.fillStyle = shGrad;
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // Draw 3D shaded cylindrical bonds, electron clouds & animated valence electrons
+    bonds.forEach(([i, j, order = 1]) => {
+      const a = projected[i];
+      const b = projected[j];
+      const avgScale = (a.scale + b.scale) / 2;
+      const dx = b.sx - a.sx;
+      const dy = b.sy - a.sy;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+
+      ctx.save();
+      if (isIonic) {
+        // Glowing electrostatic ionic bridge with outer halo
+        ctx.shadowColor = "rgba(250, 204, 21, 0.85)";
+        ctx.shadowBlur = 14;
+        ctx.strokeStyle = "rgba(250, 204, 21, 0.9)";
+        ctx.lineWidth = 3.4 * avgScale;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(a.sx, a.sy);
+        ctx.lineTo(b.sx, b.sy);
+        ctx.stroke();
+      } else {
+        // Translucent covalent orbital overlap sheath
+        const cloudGrad = ctx.createLinearGradient(a.sx, a.sy, b.sx, b.sy);
+        cloudGrad.addColorStop(0, "rgba(56, 189, 248, 0.24)");
+        cloudGrad.addColorStop(0.5, "rgba(168, 85, 247, 0.22)");
+        cloudGrad.addColorStop(1, "rgba(56, 189, 248, 0.24)");
+        ctx.strokeStyle = cloudGrad;
+        ctx.lineWidth = (18 + order * 5) * avgScale;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(a.sx, a.sy);
+        ctx.lineTo(b.sx, b.sy);
+        ctx.stroke();
+
+        // Shaded 3D rods for single/double/triple bonds
+        const rodOffsets = order === 1 ? [0] : order === 2 ? [-4.5 * avgScale, 4.5 * avgScale] : [-6.5 * avgScale, 0, 6.5 * avgScale];
+        rodOffsets.forEach(off => {
+          ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetY = 5;
+          const rodGrad = ctx.createLinearGradient(a.sx + nx * off, a.sy + ny * off, b.sx + nx * off, b.sy + ny * off);
+          rodGrad.addColorStop(0, "rgba(100, 116, 139, 0.85)");
+          rodGrad.addColorStop(0.5, "rgba(248, 250, 252, 0.98)");
+          rodGrad.addColorStop(1, "rgba(100, 116, 139, 0.85)");
+          ctx.strokeStyle = rodGrad;
+          ctx.lineWidth = 3.6 * avgScale;
+          ctx.beginPath();
+          ctx.moveTo(a.sx + nx * off, a.sy + ny * off);
+          ctx.lineTo(b.sx + nx * off, b.sy + ny * off);
+          ctx.stroke();
+        });
+      }
+      ctx.restore();
+
+      // Animated 3D electron pulse & trail along the bond axis
+      const pulse = 0.5 + 0.36 * Math.sin(t * 2.2 + i + j);
+      const ex = a.sx + (b.sx - a.sx) * pulse;
+      const ey = a.sy + (b.sy - a.sy) * pulse;
+      ctx.save();
+      ctx.shadowColor = isIonic ? "#facc15" : "#38bdf8";
+      ctx.shadowBlur = 14;
+      const haloGrad = ctx.createRadialGradient(ex, ey, 0.5, ex, ey, 9 * avgScale);
+      haloGrad.addColorStop(0, "#ffffff");
+      haloGrad.addColorStop(0.45, isIonic ? "#fde047" : "#38bdf8");
+      haloGrad.addColorStop(1, "rgba(56, 189, 248, 0)");
+      ctx.fillStyle = haloGrad;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 9 * avgScale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // Depth-sort atoms back-to-front (painter's algorithm)
+    const sorted = [...projected].sort((a, b) => b.depth - a.depth);
+    sorted.forEach(p => {
+      const el = ELEMENTS[p.z - 1];
+      const baseR = el.z === 1 ? 15 : 22;
+      const r = baseR * p.scale;
+      const col = CATEGORIES[el.category].color;
+
+      // Dynamic light angle shifts smoothly as the molecule rotates in 3D space
+      const lightAngle = -state.labRotY * 0.65 - 0.65;
+      const hlX = p.sx + Math.cos(lightAngle) * r * 0.36;
+      const hlY = p.sy + Math.sin(lightAngle) * r * 0.36;
+
+      ctx.save();
+      // Realistic 3D cast drop shadow on spheres
+      ctx.shadowColor = "rgba(0, 0, 0, 0.78)";
+      ctx.shadowBlur = 12 * p.scale;
+      ctx.shadowOffsetX = 2 * p.scale;
+      ctx.shadowOffsetY = 7 * p.scale;
+
+      // 3D shaded sphere gradient with dynamic key highlight, subsurface tint & rim occlusion
+      const grad = ctx.createRadialGradient(hlX, hlY, r * 0.08, p.sx, p.sy, r);
+      grad.addColorStop(0, "rgba(255, 255, 255, 0.96)");
+      grad.addColorStop(0.24, col);
+      grad.addColorStop(0.82, col);
+      grad.addColorStop(1, "#040710");
+
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.restore();
+
+      // Subtle back-rim bounce light on the shadow side for depth separation
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, Math.max(1, r - 0.6), lightAngle + Math.PI * 0.55, lightAngle + Math.PI * 1.45);
+      ctx.strokeStyle = "rgba(125, 211, 252, 0.35)";
+      ctx.lineWidth = Math.max(0.8, 1.4 * p.scale);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.lineWidth = 1.1;
+      ctx.strokeStyle = "rgba(255,255,255,0.42)";
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `800 ${Math.max(10, Math.round(12 * p.scale))}px 'Space Grotesk', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(el.symbol, p.sx, p.sy + 0.5);
+    });
+
+    state.labAnimFrame = requestAnimationFrame(drawFrame);
+  }
+
+  drawFrame();
+}
+
+function renderProperties(el) {
+  const phaseNow = getPhaseAtTemp(el, state.tempK);
+  const origin = COSMIC_ORIGINS[el.cosmic];
+  const props = [
+    { label: "Atomic Mass", val: `${el.mass} u` },
+    { label: `Phase at ${formatTemp(state.tempK)}`, val: phaseNow.toUpperCase() },
+    { label: "Group / Period", val: `Group ${el.group}, Period ${el.period}` },
+    { label: "Block & Shells", val: `${el.block}-block (${el.shells.length} shells)` },
+    { label: "Melting Point", val: formatTemp(el.melt) },
+    { label: "Boiling Point", val: formatTemp(el.boil) },
+    { label: "Density (STP)", val: el.density !== null ? `${el.density} g/cm³` : "Unknown" },
+    { label: "Electronegativity", val: el.en !== null ? `${el.en} (Pauling)` : "N/A" },
+    { label: "Human Body %", val: el.bodyPct > 0 ? `${el.bodyPct}%` : "Trace" },
+    { label: "Earth Crust %", val: el.crustPct > 0 ? `${el.crustPct}%` : "Trace" },
+    { label: "Cosmic Origin", val: origin.label, full: true },
+    { label: "Electron Configuration", val: el.config, full: true },
+    { label: "Discovery", val: el.discovery, full: true }
+  ];
+
+  const grid = document.getElementById("propGrid");
+  grid.innerHTML = props.map(p => `
+    <div class="prop-card ${p.full ? "full" : ""}">
+      <div class="prop-label">${p.label}</div>
+      <div class="prop-val">${p.val}</div>
+    </div>
+  `).join("");
+}
+
+function renderComparison() {
+  const container = document.getElementById("compareContainer");
+  const table = document.getElementById("compareTable");
+
+  if (state.compareZ === null || state.compareZ === state.selectedZ) {
+    container.style.display = "none";
+    return;
+  }
+
+  const a = ELEMENTS[state.compareZ - 1];
+  const b = ELEMENTS[state.selectedZ - 1];
+  container.style.display = "block";
+
+  const rows = [
+    ["Atomic #", a.z, b.z],
+    ["Mass (u)", a.mass, b.mass],
+    ["Shells", a.shells.join("-"), b.shells.join("-")],
+    ["Category", CATEGORIES[a.category].label, CATEGORIES[b.category].label],
+    ["Melt", formatTemp(a.melt), formatTemp(b.melt)],
+    ["Boil", formatTemp(a.boil), formatTemp(b.boil)],
+    ["Density", a.density ?? "—", b.density ?? "—"],
+    ["Electroneg.", a.en ?? "—", b.en ?? "—"],
+    ["Radius (pm)", a.radius ?? "—", b.radius ?? "—"]
+  ];
+
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Property</th>
+        <th>${a.symbol} (#${a.z})</th>
+        <th>${b.symbol} (#${b.z})</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")}
+    </tbody>
+  `;
+}
+
+function handleTileKeydown(e, pos) {
+  const moves = {
+    ArrowRight: [0, 1],
+    ArrowLeft: [0, -1],
+    ArrowDown: [1, 0],
+    ArrowUp: [-1, 0]
+  };
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    const z = gridCoords.get(`${pos.row},${pos.col}`);
+    playElementNote(z);
+    selectElement(z, true);
+    return;
+  }
+  if (!moves[e.key]) return;
+  e.preventDefault();
+
+  let [dr, dc] = moves[e.key];
+  let r = pos.row + dr;
+  let c = pos.col + dc;
+
+  while (r >= 2 && r <= 11 && c >= 2 && c <= 19) {
+    const targetZ = gridCoords.get(`${r},${c}`);
+    if (targetZ) {
+      const targetTile = tileMap.get(targetZ);
+      targetTile.focus();
+      playElementNote(targetZ, "32n");
+      state.highlightedShell = null;
+      selectElement(targetZ, false);
+      return;
+    }
+    r += dr;
+    c += dc;
+  }
+}
+
+function updateTempDisplay() {
+  document.getElementById("tempReadout").textContent = formatTemp(state.tempK);
+  renderTiles();
+  selectElement(state.selectedZ, false);
+}
+
+// Event Listeners
+document.getElementById("searchInput").addEventListener("input", e => {
+  state.search = e.target.value;
+  renderTiles();
+});
+
+document.getElementById("trendSelect").addEventListener("change", e => {
+  state.colorMode = e.target.value;
+  playElementNote(12);
+  renderTiles();
+});
+
+document.getElementById("tempSlider").addEventListener("input", e => {
+  state.tempK = parseInt(e.target.value, 10);
+  updateTempDisplay();
+});
+
+document.getElementById("tempUnit").addEventListener("change", e => {
+  state.tempUnit = e.target.value;
+  updateTempDisplay();
+});
+
+document.getElementById("stpBtn").addEventListener("click", () => {
+  state.tempK = 298;
+  document.getElementById("tempSlider").value = 298;
+  playElementNote(8);
+  updateTempDisplay();
+});
+
+document.getElementById("bohrFocusBtn").addEventListener("click", e => {
+  state.bohrFocus = !state.bohrFocus;
+  document.body.classList.toggle("bohr-focus", state.bohrFocus);
+  e.target.classList.toggle("active", state.bohrFocus);
+  playElementNote(18);
+});
+
+document.getElementById("soundToggleBtn").addEventListener("click", e => {
+  state.soundEnabled = !state.soundEnabled;
+  e.target.classList.toggle("active", state.soundEnabled);
+  e.target.textContent = state.soundEnabled ? "🔊 Sound" : "🔇 Muted";
+  if (state.soundEnabled) playElementNote(10);
+});
+
+document.getElementById("waveBtn").addEventListener("click", () => {
+  triggerWaveBounce(5, 10);
+});
+
+document.getElementById("insBadge").addEventListener("click", ev => {
+  const el = ELEMENTS[state.selectedZ - 1];
+  spawnSparkles(ev.clientX, ev.clientY, CATEGORIES[el.category].color);
+  playElementNote(el.z, "8n");
+});
+
+document.getElementById("toggleOrbitBtn").addEventListener("click", e => {
+  state.bohrPaused = !state.bohrPaused;
+  e.target.textContent = state.bohrPaused ? "Play" : "Pause";
+  renderBohrModel(ELEMENTS[state.selectedZ - 1]);
+});
+
+document.getElementById("boostOrbitBtn").addEventListener("click", e => {
+  state.orbitSpeedMultiplier = state.orbitSpeedMultiplier === 1 ? 3.5 : 1;
+  e.target.classList.toggle("active", state.orbitSpeedMultiplier > 1);
+  playElementNote(state.selectedZ + 7);
+  renderBohrModel(ELEMENTS[state.selectedZ - 1]);
+});
+
+document.getElementById("compareBtn").addEventListener("click", () => {
+  state.compareZ = state.compareZ === state.selectedZ ? null : state.selectedZ;
+  playElementNote(14);
+  selectElement(state.selectedZ, false);
+});
+
+document.getElementById("clearCompare").addEventListener("click", () => {
+  state.compareZ = null;
+  selectElement(state.selectedZ, false);
+});
+
+document.getElementById("closeInspector").addEventListener("click", () => {
+  document.getElementById("inspector").classList.add("closed");
+});
+
+// New Feature Event Listeners
+document.getElementById("addToLabBtn").addEventListener("click", () => {
+  addAtomToLab(state.selectedZ);
+});
+
+document.getElementById("labToggleBtn").addEventListener("click", e => {
+  const dock = document.getElementById("bondLabDock");
+  dock.classList.toggle("hidden");
+  e.target.classList.toggle("active", !dock.classList.contains("hidden"));
+});
+
+document.getElementById("clearLabBtn").addEventListener("click", () => {
+  state.labAtoms = [];
+  labNodePositions.clear();
+  renderBondLab();
+});
+
+// Interactive 2D atom dragging inside the Reaction Chamber SVG
+const bondSvgEl = document.getElementById("bondCanvasSvg");
+bondSvgEl.addEventListener("pointerdown", e => {
+  const nodeGroup = e.target.closest(".lab-atom-node");
+  if (!nodeGroup) return;
+  draggingLabAtomIdx = parseInt(nodeGroup.dataset.nodeIdx, 10);
+  bondSvgEl.style.cursor = "grabbing";
+  bondSvgEl.setPointerCapture(e.pointerId);
+});
+bondSvgEl.addEventListener("pointermove", e => {
+  if (draggingLabAtomIdx === null) return;
+  const rect = bondSvgEl.getBoundingClientRect();
+  const scaleX = 640 / (rect.width || 640);
+  const scaleY = 230 / (rect.height || 230);
+  const nx = Math.max(42, Math.min(598, (e.clientX - rect.left) * scaleX));
+  const ny = Math.max(42, Math.min(188, (e.clientY - rect.top) * scaleY));
+  labNodePositions.set(draggingLabAtomIdx, { x: nx, y: ny });
+  renderBondLab();
+});
+bondSvgEl.addEventListener("pointerup", () => {
+  draggingLabAtomIdx = null;
+  bondSvgEl.style.cursor = "grab";
+});
+
+document.getElementById("lab3dToggleBtn").addEventListener("click", e => {
+  state.lab3DMode = !state.lab3DMode;
+  e.target.classList.toggle("active", state.lab3DMode);
+  e.target.textContent = state.lab3DMode ? "📐 2D Model" : "🌐 3D Model";
+  playElementNote(state.lab3DMode ? 15 : 10);
+  renderBondLab();
+});
+
+// Interactive mouse/touch drag rotation for the 3D Molecule Canvas
+const labCanvas3d = document.getElementById("bondCanvas3D");
+let lastLabDragX = 0, lastLabDragY = 0;
+labCanvas3d.addEventListener("pointerdown", e => {
+  state.labDragging = true;
+  lastLabDragX = e.clientX;
+  lastLabDragY = e.clientY;
+  labCanvas3d.style.cursor = "grabbing";
+  labCanvas3d.setPointerCapture(e.pointerId);
+});
+labCanvas3d.addEventListener("pointermove", e => {
+  if (!state.labDragging) return;
+  const dx = e.clientX - lastLabDragX;
+  const dy = e.clientY - lastLabDragY;
+  state.labRotY += dx * 0.015;
+  state.labRotX += dy * 0.015;
+  lastLabDragX = e.clientX;
+  lastLabDragY = e.clientY;
+});
+labCanvas3d.addEventListener("pointerup", () => {
+  state.labDragging = false;
+  labCanvas3d.style.cursor = "grab";
+});
+
+document.querySelectorAll(".preset-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    state.labAtoms = btn.dataset.preset.split(",").map(Number);
+    labNodePositions.clear();
+    renderBondLab();
+  });
+});
+
+// Drag & Drop onto Reaction Chamber
+const bondDock = document.getElementById("bondLabDock");
+bondDock.addEventListener("dragover", e => {
+  e.preventDefault();
+  bondDock.classList.add("drag-over");
+});
+bondDock.addEventListener("dragleave", () => {
+  bondDock.classList.remove("drag-over");
+});
+bondDock.addEventListener("drop", e => {
+  e.preventDefault();
+  bondDock.classList.remove("drag-over");
+  const z = parseInt(e.dataTransfer.getData("text/plain"), 10);
+  if (z >= 1 && z <= 118) {
+    addAtomToLab(z);
+  }
+});
+
+// 3D Tilt & Specular Lighting Toggle
+document.getElementById("tilt3dBtn").addEventListener("click", e => {
+  state.tilt3d = !state.tilt3d;
+  e.target.classList.toggle("active", state.tilt3d);
+  document.body.classList.toggle("tilt-3d-on", state.tilt3d);
+  const ptable = document.getElementById("ptable");
+  ptable.classList.toggle("tilt-active", state.tilt3d);
+  if (!state.tilt3d) {
+    ptable.style.transform = "";
+  }
+  playElementNote(16);
+});
+
+document.getElementById("tableScroll").addEventListener("mousemove", e => {
+  if (!state.tilt3d) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const nx = (e.clientX - rect.left) / rect.width - 0.5;
+  const ny = (e.clientY - rect.top) / rect.height - 0.5;
+  const ptable = document.getElementById("ptable");
+  ptable.style.transform = `rotateX(${(-ny * 10).toFixed(2)}deg) rotateY(${(nx * 12).toFixed(2)}deg)`;
+
+  if (e.target.closest(".el-tile")) {
+    const tile = e.target.closest(".el-tile");
+    const tr = tile.getBoundingClientRect();
+    tile.style.setProperty("--mx", `${((e.clientX - tr.left) / tr.width) * 100}%`);
+    tile.style.setProperty("--my", `${((e.clientY - tr.top) / tr.height) * 100}%`);
+  }
+});
+
+// 3D Quantum Orbital Cloud Toggle & Excite Photon
+document.getElementById("orbitalModeBtn").addEventListener("click", e => {
+  state.orbitalCloud3D = !state.orbitalCloud3D;
+  e.target.classList.toggle("active", state.orbitalCloud3D);
+  e.target.textContent = state.orbitalCloud3D ? "2D Bohr" : "3D Cloud";
+  playElementNote(state.selectedZ + 5);
+  renderBohrModel(ELEMENTS[state.selectedZ - 1]);
+});
+
+document.getElementById("excitePhotonBtn").addEventListener("click", exciteAtomPhoton);
+
+// Nucleus & Isotope Stepper Controls
+document.getElementById("incNeutronBtn").addEventListener("click", () => {
+  state.customNeutrons++;
+  const el = ELEMENTS[state.selectedZ - 1];
+  renderBohrModel(el);
+  renderIsotopeBuilder(el);
+});
+
+document.getElementById("decNeutronBtn").addEventListener("click", () => {
+  if (state.customNeutrons > 0) {
+    state.customNeutrons--;
+    const el = ELEMENTS[state.selectedZ - 1];
+    renderBohrModel(el);
+    renderIsotopeBuilder(el);
+  }
+});
+
+document.getElementById("triggerDecayBtn").addEventListener("click", triggerNuclearDecay);
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    document.getElementById("inspector").classList.add("closed");
+  }
+});
+
+// Initialize
+buildFilterChips();
+buildGrid();
+state.customNeutrons = ELEMENTS[0].defaultNeutrons;
+selectElement(1, true);
+renderBondLab();
+</script>
+</body>
+</html>
